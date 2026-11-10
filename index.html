@@ -2,565 +2,730 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>晋江同人文生成器</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>同人文生成器</title>
 
-<!-- PWA 核心 Meta -->
+<!-- PWA 全屏/沉浸式配置 -->
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#FFFFFF">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href='data:application/manifest+json,{"name":"同人文生成器","short_name":"同人文","start_url":".","display":"standalone","background_color":"#ffffff","theme_color":"#ffffff","icons":[{"src":"data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23111%22/><text x=%2250%22 y=%2255%22 font-size=%2245%22 font-family=%22sans-serif%22 font-weight=%22bold%22 text-anchor=%22middle%22 fill=%22white%22>文</text></svg>","sizes":"192x192","type":"image/svg+xml"}]}'>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <style>
-  /* ================= 核心变量与主题 ================= */
-  :root {
-    --app-font-family: 'Kaiti SC', 'STKaiti', 'KaiTi', '楷体', serif;
-    --app-font-size: 16px;
-    --bg: #FFFFFF; --text: #333333; --card: #F5F5F5; --border: #E0E0E0;
-    --accent: #444444; --accentLight: #888888; --icon: #666666; --iconActive: #333333;
-  }
-  [data-theme="night"] {
-    --bg: #121212; --text: #E0E0E0; --card: #1E1E1E; --border: #333333;
-    --accent: #BBBBBB; --accentLight: #777777; --icon: #999999; --iconActive: #E0E0E0;
-  }
-  [data-theme="korean"] {
-    --bg: #FAFAFA; --text: #1A1A1A; --card: #FFFFFF; --border: #F0F0F0;
-    --accent: #555555; --accentLight: #999999; --icon: #777777; --iconActive: #1A1A1A;
-  }
+:root{--bg:#FFFFFF;--text:#111111;--sub:#888888;--card:#F7F7F7;--border:#EAEAEA;--accent:#111111;--onAccent:#FFFFFF;--fs:15px;--font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%;overflow:hidden}
+body{font-family:var(--font);font-size:14px;background:var(--bg);color:var(--text);transition:background .3s,color .3s;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;outline:none;border:none;background:none}
+input,textarea,select{font-family:inherit;color:inherit;outline:none}
+.hide-text{-webkit-text-security:disc}
+.docx-file-input{display:none}
+svg{display:block}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--app-font-family) !important; -webkit-tap-highlight-color: transparent; }
-  html, body { width: 100vw; height: 100vh; overflow: hidden; background: #1c1c1e; display: flex; justify-content: center; align-items: center; }
-  
-  .app-container { width: 100%; height: 100%; max-width: 480px; background: var(--bg); color: var(--text); font-size: var(--app-font-size); display: flex; flex-direction: column; position: relative; overflow: hidden; transition: background 0.3s, color 0.3s; }
-  @media(min-width: 1024px) { .app-container { width: 390px; height: 844px; border-radius: 40px; border: 8px solid #1A1A1A; box-shadow: 0 0 40px rgba(0,0,0,0.5); } }
+.app{position:fixed;inset:0;display:flex;flex-direction:column;background-color:var(--bg);background-image:var(--wallpaper,none);background-size:cover;background-position:center;transition:background .3s}
+.app-header{flex:0 0 auto;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:transparent;z-index:20}
+.header-title{font-size:16px;font-weight:600;letter-spacing:.5px}
+.icon-btn{color:var(--text);width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .2s}
+.icon-btn:active{background:var(--card)}
 
-  /* ================= 顶栏 ================= */
-  .topbar { height: 48px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 16px; font-size: 14px; font-weight: 600; border-bottom: 1px solid var(--border); padding-top: env(safe-area-inset-top); z-index: 10; background: var(--bg); }
-  .menu-btn { width: 20px; height: 14px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; }
-  .menu-btn span { display: block; width: 100%; height: 1.5px; background: var(--text); border-radius: 1px; }
-  .tb-right { display: flex; gap: 6px; align-items: center; }
-  .tb-signal { display: flex; gap: 2px; align-items: flex-end; height: 10px; }
-  .tb-signal i { display: block; width: 3px; background: var(--text); border-radius: 1px; }
-  .tb-signal i:nth-child(1) { height: 4px; }
-  .tb-signal i:nth-child(2) { height: 6px; }
-  .tb-signal i:nth-child(3) { height: 8px; }
-  .tb-battery { width: 22px; height: 11px; border: 1px solid var(--text); border-radius: 3px; padding: 1px; opacity: 0.8; }
-  .tb-battery::after { content: ""; display: block; width: 100%; height: 100%; background: var(--text); border-radius: 1px; }
+.page-container{flex:1;overflow-y:auto;padding:12px 20px 40px;scroll-behavior:smooth}
+.page{display:none;animation:fadeIn .3s ease}.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 
-  /* ================= 页面容器 ================= */
-  .content { flex: 1; overflow-y: auto; padding: 16px 20px 80px; position: relative; background: var(--bg); }
-  .page { display: none; animation: fade .22s ease; }
-  .page.active { display: block; }
-  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.search-bar{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:12px;padding:12px 16px;margin-bottom:24px;transition:background .3s}
+.search-bar input{flex:1;border:none;background:none;font-size:14px}
+.search-bar input::placeholder{color:var(--sub)}
 
-  h1 { font-size: 22px; margin-bottom: 16px; font-weight: bold; }
+.tag-group{margin-bottom:20px}
+.tag-group-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.tag-group-title{font-size:13px;font-weight:600;color:var(--text);letter-spacing:.5px}
+.add-tag-btn{color:var(--sub);font-size:12px}
+.tag-list{display:flex;flex-wrap:wrap;gap:10px}
+.tag{padding:8px 16px;border-radius:8px;background:var(--card);color:var(--text);font-size:13px;transition:all .2s}
+.tag.active{background:var(--accent);color:var(--onAccent)}
+.tag.mini{font-size:11px;padding:4px 10px;cursor:default;background:var(--card)}
 
-  /* ================= 表单与按钮 ================= */
-  input, select, textarea { width: 100%; padding: 12px; border-radius: 10px; background: var(--card); border: 1px solid var(--border); color: var(--text); font-size: 14px; margin-bottom: 12px; outline: none; transition: border 0.2s; }
-  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
-  textarea { resize: none; height: 80px; line-height: 1.5; }
-  label { display: block; font-size: 12px; color: var(--accentLight); margin-bottom: 6px; }
-  
-  /* 防安全键盘伪装 */
-  .hide-text { -webkit-text-security: disc; text-security: disc; }
+.panel{background:var(--card);border-radius:16px;padding:20px;margin-top:24px}
+.panel-title{font-size:15px;font-weight:600;margin-bottom:20px}
+.field{margin-bottom:20px}.field-label{display:block;font-size:12px;color:var(--sub);margin-bottom:8px}
+.field-label .req{color:#D93025}
+.text-input,.text-area,.select{width:100%;background:var(--bg);border:none;border-radius:10px;padding:12px 14px;font-size:14px;transition:box-shadow .2s}
+.text-area{resize:vertical;min-height:80px;line-height:1.6}
+.select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--sub) 50%),linear-gradient(135deg,var(--sub) 50%,transparent 50%);background-position:calc(100% - 16px) 50%,calc(100% - 11px) 50%;background-size:4px 4px,4px 4px;background-repeat:no-repeat;padding-right:36px}
 
-  .btn-primary { width: 100%; padding: 14px; border-radius: 12px; background: var(--accent); color: var(--bg); border: none; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-  .btn-primary:active { opacity: 0.8; }
-  .btn-outline { width: 100%; padding: 14px; border-radius: 12px; background: transparent; border: 1px solid var(--border); color: var(--text); font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-  .btn-sec { padding: 10px 12px; border-radius: 8px; background: var(--card); border: 1px solid var(--border); color: var(--text); font-size: 13px; cursor: pointer; }
-  .btn-row { display: flex; gap: 10px; margin-top: 10px; }
-  .btn-row button { flex: 1; }
+.btn{border-radius:10px;padding:12px 20px;font-size:14px;font-weight:500;transition:all .2s;display:inline-flex;align-items:center;justify-content:center}
+.btn-primary{background:var(--accent);color:var(--onAccent)}
+.btn-primary:active{opacity:.8}
+.btn-primary:disabled{opacity:.5}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-outline:active{background:var(--card)}
+.btn-block{width:100%;padding:14px;font-size:15px;margin-top:10px}
+.btn-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.btn-row .btn{flex:1;font-size:13px;padding:10px 14px}
 
-  /* ================= 标签组 ================= */
-  .tag-group { margin-bottom: 16px; }
-  .tag-group-title { font-size: 13px; color: var(--accentLight); margin-bottom: 8px; font-weight: 600; }
-  .tags { display: flex; flex-wrap: wrap; gap: 8px; }
-  .tag { padding: 6px 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--border); font-size: 13px; cursor: pointer; user-select: none; transition: all 0.15s; }
-  .tag.on { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.shelf-header{display:flex;justify-content:space-between;font-size:12px;color:var(--sub);margin-bottom:16px}
+.shelf-item{display:flex;align-items:center;gap:16px;background:var(--card);border-radius:16px;padding:16px;margin-bottom:12px;transition:transform .2s}
+.shelf-item:active{transform:scale(.98)}
+.shelf-cover{flex:0 0 auto;width:44px;height:58px;border-radius:6px;background:var(--border);display:flex;align-items:center;justify-content:center}
+.shelf-info{flex:1;min-width:0}
+.shelf-title{font-size:15px;font-weight:600;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shelf-meta{font-size:12px;color:var(--sub)}
+.shelf-actions{display:flex;flex-direction:column;gap:8px}
+.mini-btn{font-size:12px;color:var(--sub);padding:4px}
+.mini-btn.danger{color:#D93025}
+.empty-state{display:none;flex-direction:column;align-items:center;padding:80px 0;color:var(--sub)}
+.empty-state svg{width:48px;height:48px;margin-bottom:16px;stroke:var(--border)}
 
-  /* ================= 卡片与列表 ================= */
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-  .card-title { font-size: 15px; font-weight: bold; margin-bottom: 8px; }
-  .card-desc { font-size: 12px; color: var(--accentLight); margin-bottom: 12px; }
+.settings-section{background:var(--card);border-radius:16px;margin-bottom:16px;overflow:hidden}
+.section-header{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;transition:background .2s;cursor:pointer}
+.section-header:active{background:var(--border)}
+.section-title{font-size:15px;font-weight:600}
+.section-desc{font-size:12px;color:var(--sub);margin-top:4px}
+.settings-section.collapsed .chevron{transform:rotate(-90deg)}
+.settings-section.collapsed .section-body{display:none}
+.section-body{padding:0 20px 20px}
+.chevron{transition:transform .3s;color:var(--sub)}
 
-  /* ================= 底部导航 ================= */
-  .bottom-nav { height: 60px; background: var(--bg); border-top: 1px solid var(--border); display: flex; position: absolute; bottom: 0; width: 100%; padding-bottom: env(safe-area-inset-bottom); z-index: 10; }
-  .nav-item { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--icon); font-size: 11px; cursor: pointer; transition: color 0.2s; }
-  .nav-item.active { color: var(--iconActive); font-weight: bold; }
-  .nav-item svg { width: 22px; height: 22px; margin-bottom: 3px; fill: currentColor; }
+.stepper{display:flex;align-items:center;gap:16px}
+.stepper button{width:36px;height:36px;border-radius:50%;background:var(--bg);color:var(--text);font-size:18px;display:flex;align-items:center;justify-content:center}
+#fontSizeValue{min-width:24px;text-align:center;font-weight:600;font-size:15px}
+.segmented{display:flex;background:var(--bg);border-radius:10px;padding:4px}
+.segmented button{flex:1;padding:8px;font-size:13px;border-radius:8px;color:var(--sub);transition:.2s}
+.segmented button.active{background:var(--card);color:var(--text);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.preset-chips{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.preset-chip{display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:8px;padding:8px 12px;font-size:13px}
+.preset-chip .del{color:var(--sub);font-size:16px;line-height:1;display:flex;align-items:center}
 
-  /* ================= 侧边抽屉 ================= */
-  .drawer-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-  .drawer-overlay.active { opacity: 1; pointer-events: auto; }
-  .drawer { position: absolute; top: 0; left: -75%; width: 75%; height: 100%; background: var(--bg); z-index: 51; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); padding: 20px; border-right: 1px solid var(--border); }
-  .drawer.active { left: 0; }
-  .drawer-header { font-size: 18px; font-weight: bold; margin-bottom: 24px; }
-  .drawer-item { padding: 16px 12px; font-size: 15px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 12px; }
-  .drawer-item svg { width: 20px; height: 20px; fill: currentColor; }
+.pwd-wrap{position:relative}
+.pwd-wrap .text-input{padding-right:44px}
+.eye-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--sub);cursor:pointer;padding:4px}
+.eye-btn svg{width:18px;height:18px}
 
-  /* ================= Modal 弹窗 ================= */
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
-  .modal-overlay.active { display: flex; }
-  .modal-content { background: var(--bg); width: 100%; max-width: 400px; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-  .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 12px; }
-  .modal-desc { font-size: 13px; color: var(--accentLight); margin-bottom: 16px; }
-  
-  /* 聊天记录特供 */
-  .chat-box { background: var(--card); border-radius: 12px; height: 250px; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; border: 1px solid var(--border); }
-  .msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; }
-  .msg.left { align-self: flex-start; background: var(--bg); border: 1px solid var(--border); }
-  .msg.right { align-self: flex-end; background: var(--accent); color: var(--bg); }
+.bottom-bar{flex:0 0 auto;display:flex;height:64px;background:var(--bg);border-top:1px solid var(--border);z-index:30;padding-bottom:env(safe-area-inset-bottom)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--sub);font-size:10px;font-weight:500}
+.nav-item.active{color:var(--text)}
+.nav-item svg{width:22px;height:22px}
 
-  /* ================= Toast ================= */
-  .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(10px); background: rgba(0,0,0,0.8); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; opacity: 0; pointer-events: none; transition: all 0.3s; z-index: 999; white-space: nowrap; }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:.3s;z-index:100;backdrop-filter:blur(2px)}
+.drawer-overlay.show{opacity:1;pointer-events:auto}
+.drawer{position:absolute;top:0;left:0;bottom:0;width:280px;background:var(--bg);transform:translateX(-100%);transition:.3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:4px 0 24px rgba(0,0,0,.05)}
+.drawer-overlay.show .drawer{transform:translateX(0)}
+.drawer-head{padding:30px 24px 20px}
+.drawer-head h3{margin:0 0 6px;font-size:18px;font-weight:600}
+.drawer-head p{margin:0;font-size:12px;color:var(--sub)}
+.drawer-list{padding:10px 12px}
+.drawer-item{display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;border-radius:12px;font-size:15px;text-align:left;color:var(--text);transition:background .2s}
+.drawer-item:active{background:var(--card)}
+.drawer-item svg{color:var(--sub)}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:.3s;z-index:200}
+.modal-overlay.show{opacity:1;pointer-events:auto}
+.modal{width:100%;max-width:600px;max-height:90vh;background:var(--bg);border-radius:24px 24px 0 0;display:flex;flex-direction:column;transform:translateY(100%);transition:.3s cubic-bezier(.4,0,.2,1)}
+.modal-overlay.show .modal{transform:translateY(0)}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid var(--border)}
+.modal-header h2{margin:0;font-size:16px;font-weight:600}
+.modal-body{flex:1;overflow-y:auto;padding:20px 24px}
+.modal-footer{display:flex;gap:12px;padding:16px 24px calc(20px + env(safe-area-inset-bottom));border-top:1px solid var(--border)}
+.modal-footer .btn{flex:1;padding:14px;font-size:15px}
+
+.detail-meta{font-size:12px;color:var(--sub);margin-bottom:16px}
+.article-content{white-space:pre-wrap;line-height:1.8;font-size:var(--fs);padding:20px;background:var(--card);border-radius:14px;margin:16px 0 24px;max-height:45vh;overflow-y:auto;color:var(--text)}
+.subsection-title{font-size:14px;font-weight:600;margin:20px 0 12px;display:flex;align-items:center;gap:8px;color:var(--text)}
+.subsection-title::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--accent)}
+.history-item{background:var(--card);border-radius:12px;padding:14px;margin-bottom:10px}
+.history-dir{font-weight:600;font-size:13px;margin-bottom:6px}
+.history-time{color:var(--sub);font-size:11px;margin-bottom:8px}
+.history-text{color:var(--sub);font-size:13px;line-height:1.5;white-space:pre-wrap}
+.muted{color:var(--sub);font-size:13px;padding:10px 0}
+#toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(10px);background:rgba(0,0,0,.85);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:.3s;z-index:9999;max-width:80vw;text-align:center;backdrop-filter:blur(4px)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
-
-<div class="app-container" id="app" data-theme="day">
-  
-  <!-- 侧边抽屉 -->
-  <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
-  <div class="drawer" id="drawer">
-    <div class="drawer-header">更多功能</div>
-    <div class="drawer-item" onclick="openModal('modal-phoneLiterature'); toggleDrawer()">
-      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      手机文学
-    </div>
-    <div class="drawer-item" onclick="openModal('modal-miniDrama'); toggleDrawer()">
-      <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-      小短剧
-    </div>
-  </div>
-
-  <!-- 顶栏 -->
-  <div class="topbar">
-    <div style="display:flex; align-items:center; gap: 12px;">
-      <div class="menu-btn" onclick="toggleDrawer()"><span></span><span></span><span></span></div>
-      <div id="clock">09:41</div>
-    </div>
-    <div>晋江同人文生成器</div>
-    <div class="tb-right">
-      <div class="tb-signal"><i></i><i></i><i></i><i></i></div>
-      <div class="tb-battery"></div>
-    </div>
-  </div>
-
-  <!-- 页面内容 -->
-  <div class="content">
-    
-    <!-- 1. 搜索页 -->
-    <div class="page active" id="page-search">
-      <h1>搜索</h1>
-      
-      <div id="tagGroupsContainer">
-        <!-- 标签组由 JS 动态生成 -->
+<div class="app">
+  <header class="app-header">
+    <button class="icon-btn" id="drawerBtn">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+    </button>
+    <div class="header-title" id="headerTitle">搜索</div>
+    <button class="icon-btn" id="themeQuickBtn">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+    </button>
+  </header>
+  <main class="page-container" id="pageContainer">
+    <section class="page active" id="page-search">
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--sub)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
+        <input type="text" placeholder="搜索标签、角色、世界观...">
       </div>
-      
-      <div style="margin-top: 20px;">
-        <button class="btn-primary" onclick="toggleGenPanel()">生成同人文</button>
-      </div>
-      
-      <!-- 生成面板 -->
-      <div id="genPanel" style="display: none; margin-top: 20px;">
-        <div class="card">
-          <div class="card-title">生成设置</div>
-          
-          <label>每一篇章字数</label>
-          <select>
-            <option>500</option><option>1000</option>
-            <option selected>2000</option><option>3000</option>
-            <option>5000</option><option>10000</option>
-          </select>
-          
-          <label>文风设定</label>
-          <select>
-            <option selected>晋江文学</option><option>起点文学</option>
-            <option>番茄文学</option><option>LOFTER文学</option>
-          </select>
-          
-          <label>AI扩写指令（选填）</label>
-          <textarea placeholder="例如：两人在雨夜重逢，气氛暧昧..."></textarea>
-          
-          <label>严禁AI生成的内容（必填）</label>
-          <textarea placeholder="例如：禁止出现政治敏感内容、暴力描写..." style="border-color: #E74C3C;"></textarea>
-          
-          <button class="btn-primary" onclick="addToShelf()">开始生成</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 2. 书架页 -->
-    <div class="page" id="page-shelf">
-      <h1>书架</h1>
-      
-      <!-- 空状态 -->
-      <div id="shelfEmpty" style="text-align: center; padding: 50px 0; color: var(--accentLight);">
-        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 16px; opacity: 0.5;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+      <div id="tagGroups"></div>
+      <button class="btn btn-primary btn-block" id="openGenerateBtn">生成同人文</button>
+    </section>
+    <section class="page" id="page-shelf">
+      <div class="shelf-header"><span id="shelfCount"></span><span>点击查看详情</span></div>
+      <div id="shelfList"></div>
+      <div class="empty-state" id="shelfEmpty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
         <p>暂无收藏文章</p>
-        <button class="btn-sec" style="margin-top: 16px;" onclick="switchTab('search')">去搜索</button>
       </div>
-
-      <!-- 文章列表 -->
-      <div id="shelfList" style="display: none;">
-        <!-- 由 JS 渲染 -->
-      </div>
-    </div>
-
-    <!-- 3. 设置页 -->
-    <div class="page" id="page-settings">
-      <h1>设置</h1>
-      
-      <!-- API 预设管理 -->
-      <div class="card">
-        <div class="card-title">API 预设管理</div>
-        
-        <label>当前预设</label>
-        <select id="apiPresetSelect" onchange="loadPreset(this.value)">
-          <option value="default">默认预设</option>
-        </select>
-        
-        <div class="btn-row" style="flex-wrap: wrap;">
-          <button class="btn-sec" style="flex: 1 1 40%;" onclick="newPreset()">新建预设</button>
-          <button class="btn-sec" style="flex: 1 1 40%;" onclick="savePreset()">保存修改</button>
-          <button class="btn-sec" style="flex: 1 1 100%; color:#E74C3C;" onclick="deletePreset()">删除当前预设</button>
-        </div>
-      </div>
-
-      <!-- API 配置 -->
-      <div class="card">
-        <div class="card-title">API 配置</div>
-        <label>API URL</label>
-        <input type="text" id="apiUrl" placeholder="https://api.example.com/v1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-        
-        <label>API 密钥</label>
-        <!-- 伪装密码防安全键盘 -->
-        <input type="text" id="apiKey" class="hide-text" placeholder="sk-..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-        
-        <button class="btn-sec" style="width: 100%;" onclick="testApi()">测试连接</button>
-      </div>
-
-      <!-- 文风预设 -->
-      <div class="card">
-        <div class="card-title">文风预设</div>
-        <select id="styleSelect">
-          <option>晋江文学</option><option>起点文学</option>
-          <option>番茄文学</option><option>LOFTER文学</option>
-        </select>
-        <button class="btn-sec" style="width: 100%;" onclick="addCustomStyle()">新建自定义文风</button>
-      </div>
-
-      <!-- 外观 -->
-      <div class="card">
-        <div class="card-title">外观</div>
-        
-        <label>字体</label>
-        <select onchange="changeFont(this.value)">
-          <option value="kaiti" selected>课本楷体</option>
-          <option value="songti">课本宋体</option>
-          <option value="system">系统原生</option>
-          <option value="custom">自定义上传</option>
-        </select>
-
-        <label>字号大小 (12 - 24)</label>
-        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px;">
-          <input type="range" min="12" max="24" value="16" style="margin-bottom:0;" oninput="document.documentElement.style.setProperty('--app-font-size', this.value + 'px')">
-        </div>
-
-        <label>自定义壁纸</label>
-        <button class="btn-sec" style="width: 100%; margin-bottom: 12px;" onclick="toast('请选择图片文件')">上传壁纸</button>
-
-        <label>主题模式</label>
-        <div class="btn-row" style="margin-top: 6px;">
-          <button class="btn-sec" onclick="setTheme('day')">日间</button>
-          <button class="btn-sec" onclick="setTheme('night')">夜间</button>
-          <button class="btn-sec" onclick="setTheme('korean')">韩系</button>
-        </div>
-      </div>
-
-      <!-- 世界观设定 -->
-      <div class="card">
-        <div class="card-title">世界观设定</div>
-        <button class="btn-sec" style="width: 100%; margin-bottom: 8px;" onclick="toast('打开 ABO 世界观管理')">ABO世界观</button>
-        <button class="btn-sec" style="width: 100%;" onclick="toast('编辑世界书词条')">世界书词条</button>
-      </div>
-    </div>
+    </section>
     
-  </div>
+    <section class="page" id="page-settings">
+      <!-- 1. API预设管理 -->
+      <div class="settings-section">
+        <div class="section-header"><div><div class="section-title">API预设管理</div><div class="section-desc">保存多套配置，随时切换</div></div><svg class="chevron" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+        <div class="section-body">
+          <div class="field">
+            <label class="field-label">当前预设</label>
+            <select class="select" id="presetSelector"><option value="">-- 选择预设 --</option></select>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-outline" id="newPresetBtn">新建预设</button>
+            <button class="btn btn-outline" id="savePresetBtn">保存当前</button>
+            <button class="btn btn-outline" id="deletePresetBtn">删除预设</button>
+          </div>
+        </div>
+      </div>
 
-  <!-- 底部导航 -->
-  <div class="bottom-nav">
-    <div class="nav-item active" id="nav-search" onclick="switchTab('search')">
-      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="2"></circle><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="2"></line></svg>
-      搜索
-    </div>
-    <div class="nav-item" id="nav-shelf" onclick="switchTab('shelf')">
-      <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" fill="none" stroke="currentColor" stroke-width="2"></path></svg>
-      书架
-    </div>
-    <div class="nav-item" id="nav-settings" onclick="switchTab('settings')">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="2"></path></svg>
-      设置
-    </div>
-  </div>
+      <!-- 2. API配置 -->
+      <div class="settings-section">
+        <div class="section-header"><div><div class="section-title">API 配置</div><div class="section-desc">OpenAI 兼容接口</div></div><svg class="chevron" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+        <div class="section-body">
+          <div class="field"><label class="field-label">API URL</label><input type="text" id="apiUrl" class="text-input" placeholder="https://api.example.com/v1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
+          <div class="field">
+            <label class="field-label">API 密钥</label>
+            <div class="pwd-wrap">
+              <input type="text" id="apiKey" class="text-input hide-text" placeholder="sk-..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+              <button class="eye-btn" id="toggleKeyBtn">
+                <svg id="eyeOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              </button>
+            </div>
+          </div>
+          <div class="field"><label class="field-label">模型名称</label><input type="text" id="apiModel" class="text-input" placeholder="gpt-3.5-turbo" autocomplete="off"></div>
+          <div class="btn-row"><button class="btn btn-outline" id="testApiBtn">测试连接</button></div>
+        </div>
+      </div>
 
+      <!-- 3. 世界观设定 -->
+      <div class="settings-section">
+        <div class="section-header"><div><div class="section-title">世界观设定</div><div class="section-desc">全局世界观文本</div></div><svg class="chevron" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+        <div class="section-body">
+          <textarea id="worldviewTextarea" class="text-area" rows="4" placeholder="粘贴或导入文本..."></textarea>
+          <div class="btn-row"><button class="btn btn-outline" id="wvDocxBtn">导入docx</button><input type="file" id="wvDocxInput" accept=".docx" class="docx-file-input"><button class="btn btn-outline" id="wvTxtBtn">导入TXT</button><input type="file" id="wvTxtInput" accept=".txt" class="docx-file-input"></div>
+        </div>
+      </div>
+
+      <!-- 4. 世界书 -->
+      <div class="settings-section">
+        <div class="section-header"><div><div class="section-title">世界书</div><div class="section-desc">独立词条板块</div></div><svg class="chevron" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+        <div class="section-body">
+          <textarea id="worldBookTextarea" class="text-area" rows="4" placeholder="粘贴或导入文本..."></textarea>
+          <div class="btn-row"><button class="btn btn-outline" id="wbDocxBtn">导入docx</button><input type="file" id="wbDocxInput" accept=".docx" class="docx-file-input"><button class="btn btn-outline" id="wbTxtBtn">导入TXT</button><input type="file" id="wbTxtInput" accept=".txt" class="docx-file-input"></div>
+        </div>
+      </div>
+
+      <!-- 5. 文风预设 -->
+      <div class="settings-section">
+        <div class="section-header"><div><div class="section-title">文风预设</div><div class="section-desc">内置与自定义文风</div></div><svg class="chevron" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+        <div class="section-body"><div class="preset-chips" id="stylePresetChips"></div><button class="btn btn-outline" id="addStyleBtn">新建自定义文风</button></div>
+      </div>
+
+      <!-- 6. 角色库 -->
+      <div class="settings-section">
+        <div class="section-header"><div><div class="section-title">角色库</div><div class="section-desc">管理 char 角色卡</div></div><svg class="chevron" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+        <div class="section-body">
+          <textarea id="charTextarea" class="text-area" rows="4" placeholder="粘贴或导入文本..."></textarea>
+          <div class="btn-row"><button class="btn btn-outline" id="charDocxBtn">导入docx</button><input type="file" id="charDocxInput" accept=".docx" class="docx-file-input"><button class="btn btn-outline" id="charListBtn">查看列表</button></div>
+        </div>
+      </div>
+
+      <!-- 7. User面具库 -->
+      <div class="settings-section">
+        <div class="section-header"><div><div class="section-title">User面具库</div><div class="section-desc">管理 user 面具</div></div><svg class="chevron" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+        <div class="section-body">
+          <textarea id="maskTextarea" class="text-area" rows="4" placeholder="粘贴或导入文本..."></textarea>
+          <div class="btn-row"><button class="btn btn-outline" id="maskDocxBtn">导入docx</button><input type="file" id="maskDocxInput" accept=".docx" class="docx-file-input"><button class="btn btn-outline" id="maskListBtn">查看列表</button></div>
+        </div>
+      </div>
+
+      <!-- 8. 外观 -->
+      <div class="settings-section">
+        <div class="section-header"><div><div class="section-title">外观设定</div><div class="section-desc">字体、壁纸、主题</div></div><svg class="chevron" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+        <div class="section-body">
+          <div class="field"><label class="field-label">自定义壁纸</label><div class="btn-row" style="margin-top:0"><button class="btn btn-outline" id="wallBtn">上传壁纸</button><button class="btn btn-outline" id="wallClearBtn">清除壁纸</button></div><input type="file" id="wallInput" accept="image/*" class="docx-file-input"></div>
+          
+          <div class="field">
+            <label class="field-label">自定义字体</label>
+            <select class="select" id="fontSelect">
+              <option value="课本楷体">课本楷体</option>
+              <option value="课本宋体">课本宋体</option>
+              <option value="系统原生">系统原生</option>
+              <option value="自定义上传">自定义上传字体文件</option>
+            </select>
+            <input type="file" id="fontFileInput" accept=".ttf,.otf,.woff" class="docx-file-input">
+          </div>
+          
+          <div class="field"><label class="field-label">字号大小</label><div class="stepper"><button id="fsMinus">−</button><span id="fontSizeValue">15</span><button id="fsPlus">+</button></div></div>
+          
+          <div class="field" style="margin-bottom:0"><label class="field-label">主题模式</label><div class="segmented" id="themeSegmented"><button data-theme="day" class="active">日间</button><button data-theme="night">夜间</button><button data-theme="korean">韩系</button></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <nav class="bottom-bar">
+    <button class="nav-item active" data-page="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
+      <span>搜索</span>
+    </button>
+    <button class="nav-item" data-page="shelf">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+      <span>书架</span>
+    </button>
+    <button class="nav-item" data-page="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      <span>设置</span>
+    </button>
+  </nav>
 </div>
 
-<!-- ================= 弹窗组件 ================= -->
-<!-- 手机文学 -->
-<div class="modal-overlay" id="modal-phoneLiterature">
-  <div class="modal-content">
-    <div class="modal-title">手机文学</div>
-    <div class="modal-desc">选两个角色，输入指令，生成聊天记录</div>
-    <label>角色 1</label><input type="text" placeholder="角色1名称">
-    <label>角色 2</label><input type="text" placeholder="角色2名称">
-    <label>指令</label><textarea placeholder="输入指令..."></textarea>
-    <div class="chat-box" style="display: none;" id="mockChat">
-      <div class="msg left">你今天怎么没来？</div>
-      <div class="msg right">在宿舍休息。</div>
-      <div class="msg left">要不要给你带点吃的？</div>
+<div class="drawer-overlay" id="drawerOverlay">
+  <aside class="drawer">
+    <div class="drawer-head"><h3>同人文生成器</h3><p>v1.0.3 · 极简版</p></div>
+    <div class="drawer-list">
+      <button class="drawer-item" data-drawer="phone">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+        <span>捡手机</span>
+      </button>
+      <button class="drawer-item" data-drawer="drama">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+        <span>小剧场</span>
+      </button>
+      <button class="drawer-item" data-drawer="close">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <span>关闭</span>
+      </button>
     </div>
-    <div class="btn-row" style="margin-top: 10px;">
-      <button class="btn-outline" onclick="closeModal('modal-phoneLiterature')">取消</button>
-      <button class="btn-primary" style="margin-top:0;" onclick="document.getElementById('mockChat').style.display='flex'; toast('生成成功')">生成</button>
-    </div>
-  </div>
+  </aside>
 </div>
 
-<!-- 小短剧 -->
-<div class="modal-overlay" id="modal-miniDrama">
-  <div class="modal-content">
-    <div class="modal-title">小短剧</div>
-    <div class="modal-desc">输入指令，选字数和文风，生成短篇剧情</div>
-    <label>指令</label><textarea placeholder="输入指令..."></textarea>
-    <label>字数</label>
-    <select><option>500</option><option>1000</option><option>2000</option></select>
-    <div class="btn-row" style="margin-top: 10px;">
-      <button class="btn-outline" onclick="closeModal('modal-miniDrama')">取消</button>
-      <button class="btn-primary" style="margin-top:0;" onclick="closeModal('modal-miniDrama'); toast('生成成功')">生成</button>
-    </div>
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header"><h2 id="modalTitle">标题</h2><button class="icon-btn" id="modalClose"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
   </div>
 </div>
-
-<!-- 文章详情 -->
-<div class="modal-overlay" id="modal-articleDetail">
-  <div class="modal-content">
-    <div class="modal-title">文章详情</div>
-    <div style="max-height: 200px; overflow-y: auto; margin-bottom: 16px; font-size: 14px; line-height: 1.6; padding: 10px; background: var(--card); border-radius: 8px;">
-      林晚站在天台上，风吹起她的发丝。她转过头，眼中闪烁着星星的光芒...<br><br>
-      “你知道吗？”她的声音有些颤抖，“我一直都在看着你。”
-    </div>
-    <label>续写历史（最多10次）</label>
-    <div class="tags" style="margin-bottom: 12px;">
-      <div class="tag">两人关系升温</div>
-      <div class="tag">揭开过去的秘密</div>
-    </div>
-    <label>续写方向</label>
-    <input type="text" placeholder="例如：两人关系升温...">
-    <button class="btn-primary" style="margin-top: 10px;" onclick="toast('已续写')">续写</button>
-    <button class="btn-outline" onclick="closeModal('modal-articleDetail')">关闭</button>
-  </div>
-</div>
+<div id="toast"></div>
 
 <script>
-  // ================= 核心逻辑 =================
-  
-  // 时钟
-  function updateClock() {
-    const d = new Date();
-    document.getElementById('clock').textContent = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
-  }
-  setInterval(updateClock, 10000);
-  updateClock();
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+let toastT;
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200);}
 
-  // 提示框
-  let toastTimer;
-  function toast(msg) {
-    let t = document.getElementById('toast');
-    if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.appendChild(t); }
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
-  }
+const THEMES = {
+  day:{bg:'#FFFFFF',text:'#111111',sub:'#888888',card:'#F7F7F7',border:'#EAEAEA',accent:'#111111',onAccent:'#FFFFFF'},
+  night:{bg:'#000000',text:'#EEEEEE',sub:'#666666',card:'#141414',border:'#222222',accent:'#FFFFFF',onAccent:'#000000'},
+  korean:{bg:'#F4F4F4',text:'#222222',sub:'#999999',card:'#FFFFFF',border:'#EBEBEB',accent:'#333333',onAccent:'#FFFFFF'}
+};
+const TAGS = [
+  {id:'world',title:'世界观',tags:['ABO','哨兵向导','星际','末日','修仙','西幻','现代都市','古代架空','娱乐圈','兽人']},
+  {id:'rel',title:'关系设定',tags:['年上','年下','青梅竹马','破镜重圆','先婚后爱','追妻火葬场','强强','双强']},
+  {id:'genre',title:'题材类型',tags:['娱乐圈','校园','职场','电竞','体育竞技','悬疑推理','无限流','系统']},
+  {id:'gender',title:'性别组合',tags:['BG','BL','GL','GB','无CP','百合','耽美','言情']},
+  {id:'style',title:'热门风格',tags:['甜宠','虐恋','沙雕','正剧','轻松','暗黑','治愈','致郁']}
+];
+const FONTS = {'课本楷体':'"Kaiti SC","STKaiti","KaiTi",serif','课本宋体':'"Songti SC","STSong","SimSun",serif','系统原生':'-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif'};
 
-  // 抽屉逻辑
-  function toggleDrawer() {
-    document.getElementById('drawer').classList.toggle('active');
-    document.getElementById('drawerOverlay').classList.toggle('active');
-  }
+const state = {
+  theme:'day', selectedTags:{}, customTags:{}, fontSize:15, fontName:'系统原生', wallpaper:'',
+  selectedPreset:'晋江文学', customPresets:[], shelf:[], apiUrl:'', apiKey:'', apiModel:'gpt-3.5-turbo',
+  apiPresets: [],
+  charLib:'', maskLib:'', wvText:'', wbText:''
+};
 
-  // 弹窗逻辑
-  function openModal(id) { document.getElementById(id).classList.add('active'); }
-  function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function save(){try{localStorage.setItem('jj_v1',JSON.stringify(state))}catch(e){}}
+function load(){try{const d=JSON.parse(localStorage.getItem('jj_v1'));if(d)Object.assign(state,d)}catch(e){}}
 
-  // 页面切换
-  function switchTab(name) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    const page = document.getElementById('page-' + name);
-    if (page) page.classList.add('active');
-    
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    const nav = document.getElementById('nav-' + name);
-    if (nav) nav.classList.add('active');
-    
-    document.querySelector('.content').scrollTop = 0;
-  }
+function applyTheme(n){
+  const t=THEMES[n]||THEMES.day;
+  const r=document.documentElement.style;
+  r.setProperty('--bg',t.bg);r.setProperty('--text',t.text);r.setProperty('--sub',t.sub);r.setProperty('--card',t.card);
+  r.setProperty('--border',t.border);r.setProperty('--accent',t.accent);r.setProperty('--onAccent',t.onAccent);
+  state.theme=n;
+  $$('#themeSegmented button').forEach(b=>b.classList.toggle('active',b.dataset.theme===n));
+  const icon = $('#themeQuickBtn');
+  if(n==='day') icon.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
+  else if(n==='night') icon.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+  else icon.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>';
+  save();
+}
+function applyFont(f){document.documentElement.style.setProperty('--font',FONTS[f]||FONTS['系统原生']);state.fontName=f;save()}
+function applySize(s){state.fontSize=Math.min(24,Math.max(12,s));document.documentElement.style.setProperty('--fs',state.fontSize+'px');$('#fontSizeValue').textContent=state.fontSize;save()}
+function applyWall(d){state.wallpaper=d||'';document.documentElement.style.setProperty('--wallpaper',d?`url("${d}")`:'none');save()}
 
-  // 主题、字体
-  function setTheme(mode) { document.getElementById('app').dataset.theme = mode; toast('主题已切换'); }
-  function changeFont(type) {
-    if (type === 'kaiti') document.documentElement.style.setProperty('--app-font-family', "'Kaiti SC', 'STKaiti', 'KaiTi', '楷体', serif");
-    else if (type === 'songti') document.documentElement.style.setProperty('--app-font-family', "'Noto Serif SC', 'SimSun', '宋体', serif");
-    else if (type === 'system') document.documentElement.style.setProperty('--app-font-family', "-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif");
-    else toast('请选择自定义字体文件');
-    toast('字体已切换');
-  }
+function switchPage(p){
+  $$('.page').forEach(el=>el.classList.toggle('active',el.id==='page-'+p));
+  $$('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.page===p));
+  $('#headerTitle').textContent={search:'搜索',shelf:'书架',settings:'设置'}[p];
+  save();
+}
 
-  // ================= 动态渲染标签 =================
-  const tagGroups = [
-    { title: "世界观", tags: ["ABO", "哨兵向导", "星际", "末日", "修仙", "西幻", "现代都市", "古代架空", "娱乐圈", "兽人"] },
-    { title: "关系设定", tags: ["年上", "年下", "青梅竹马", "破镜重圆", "先婚后爱", "追妻火葬场", "强强", "双强"] },
-    { title: "题材类型", tags: ["娱乐圈", "校园", "职场", "电竞", "体育竞技", "悬疑推理", "无限流", "系统"] },
-    { title: "性别组合", tags: ["BG", "BL", "GL", "GB", "无CP", "百合", "耽美", "言情"] },
-    { title: "热门风格", tags: ["甜宠", "虐恋", "沙雕", "正剧", "轻松", "暗黑", "治愈", "致郁"] }
-  ];
-  
-  const tagContainer = document.getElementById('tagGroupsContainer');
-  tagGroups.forEach(group => {
-    const div = document.createElement('div');
-    div.className = 'tag-group';
-    div.innerHTML = `<div class="tag-group-title">${group.title}</div>`;
-    const tagsBox = document.createElement('div');
-    tagsBox.className = 'tags';
-    group.tags.forEach(tag => {
-      const el = document.createElement('div');
-      el.className = 'tag';
-      el.textContent = tag;
-      el.onclick = function() { this.classList.toggle('on'); };
-      tagsBox.appendChild(el);
+function renderTags(){
+  const w=$('#tagGroups');w.innerHTML='';
+  TAGS.forEach(g=>{
+    const custom=state.customTags[g.id]||[];
+    const sel=state.selectedTags[g.id]||[];
+    const all=[...new Set([...g.tags,...custom])];
+    const box=document.createElement('div');box.className='tag-group';
+    box.innerHTML=`<div class="tag-group-header"><span class="tag-group-title">${g.title}</span><button class="add-tag-btn">+ 自定义</button></div>`;
+    box.querySelector('.add-tag-btn').onclick=()=>{
+      const v=prompt('输入自定义标签');if(!v||!v.trim())return;
+      state.customTags[g.id]=state.customTags[g.id]||[];
+      if(!state.customTags[g.id].includes(v.trim())){state.customTags[g.id].push(v.trim());save();renderTags();}
+    };
+    const list=document.createElement('div');list.className='tag-list';
+    all.forEach(t=>{
+      const b=document.createElement('button');b.className='tag'+(sel.includes(t)?' active':'');b.textContent=t;
+      b.onclick=()=>{
+        state.selectedTags[g.id]=state.selectedTags[g.id]||[];
+        const i=state.selectedTags[g.id].indexOf(t);
+        if(i>=0)state.selectedTags[g.id].splice(i,1);else state.selectedTags[g.id].push(t);
+        save();renderTags();
+      };
+      list.appendChild(b);
     });
-    div.appendChild(tagsBox);
-    tagContainer.appendChild(div);
+    box.appendChild(list);w.appendChild(box);
   });
+}
 
-  // ================= 生成面板操作 =================
-  function toggleGenPanel() {
-    const p = document.getElementById('genPanel');
-    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+function getStyleList(){return [...new Set(['晋江文学','起点文学','番茄文学','LOFTER文学',...(state.customPresets||[])])]}
+function renderStyles(){
+  const list=getStyleList();
+  const chips=$('#stylePresetChips');
+  chips.innerHTML=list.map(s=>`<span class="preset-chip">${esc(s)}${['晋江文学','起点文学','番茄文学','LOFTER文学'].includes(s)?'':`<button class="del" data-s="${esc(s)}">×</button>`}</span>`).join('');
+  $$('.preset-chip .del',chips).forEach(b=>b.onclick=()=>{
+    state.customPresets=state.customPresets.filter(x=>x!==b.dataset.s);
+    if(state.selectedPreset===b.dataset.s)state.selectedPreset='晋江文学';
+    save();renderStyles();toast('已删除文风');
+  });
+}
+
+function renderPresetSelector(selectedName) {
+  const sel = $('#presetSelector');
+  const list = state.apiPresets || [];
+  sel.innerHTML = `<option value="">-- 选择预设 --</option>` + list.map(p => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join('');
+  if (selectedName) sel.value = selectedName;
+}
+
+function getSysPrompt(){
+  let s='你是一位资深同人小说作者，擅长创作高质量中文小说。';
+  if(state.charLib)s+='\n【角色卡】\n'+state.charLib;
+  if(state.maskLib)s+='\n【User面具】\n'+state.maskLib;
+  if(state.wvText)s+='\n【世界观】\n'+state.wvText;
+  if(state.wbText)s+='\n【世界书】\n'+state.wbText;
+  return s;
+}
+
+async function callAI(msgs){
+  const url=(state.apiUrl||'').trim(); if(!url)throw new Error('请先在设置中填写API URL');
+  let ep=url.replace(/\/+$/,''); if(!/\/chat\/completions$/.test(ep))ep+='/chat/completions';
+  const res=await fetch(ep,{method:'POST',headers:{'Content-Type':'application/json',...(state.apiKey?{'Authorization':'Bearer '+state.apiKey}:{})},body:JSON.stringify({model:state.apiModel||'gpt-3.5-turbo',messages:msgs,temperature:0.85,max_tokens:4096})});
+  if(!res.ok)throw new Error('API请求失败('+res.status+')');
+  const d=await res.json(); const txt=d?.choices?.[0]?.message?.content||d?.choices?.[0]?.text;
+  if(!txt)throw new Error('API返回为空'); return txt.trim();
+}
+
+function addArticle(a){state.shelf.unshift(a);save();renderShelf();}
+
+function renderShelf(){
+  const l=$('#shelfList'),e=$('#shelfEmpty'),c=$('#shelfCount');
+  if(!state.shelf.length){l.innerHTML='';e.style.display='flex';c.textContent='';return}
+  e.style.display='none';c.textContent=`共 ${state.shelf.length} 篇`;
+  l.innerHTML=state.shelf.map(a=>`<div class="shelf-item" data-id="${a.id}"><div class="shelf-cover"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--sub)" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg></div><div class="shelf-info"><div class="shelf-title">${esc(a.title)}</div><div class="shelf-meta">${a.date} · ${a.wordCount}字 · ${esc(a.style)}</div></div><div class="shelf-actions"><button class="mini-btn" data-act="edit" data-id="${a.id}">编辑</button><button class="mini-btn danger" data-act="del" data-id="${a.id}">删除</button></div></div>`).join('');
+  $$('.mini-btn',l).forEach(b=>b.onclick=(e)=>{
+    e.stopPropagation();const id=b.dataset.id;
+    if(b.dataset.act==='del'){if(confirm('确定删除？')){state.shelf=state.shelf.filter(x=>x.id!==id);save();renderShelf();closeModal();toast('已删除')}}
+    else openDetail(id);
+  });
+  $$('.shelf-item',l).forEach(item=>item.onclick=()=>openDetail(item.dataset.id));
+}
+
+function openModal(title,body,actions){
+  $('#modalTitle').textContent=title;
+  const b=$('#modalBody');b.innerHTML='';if(typeof body==='string')b.innerHTML=body;else b.appendChild(body);
+  const f=$('#modalFooter');f.innerHTML='';
+  (actions||[{label:'关闭',type:'outline',onclick:closeModal}]).forEach(a=>{
+    const btn=document.createElement('button');btn.className='btn '+(a.type==='primary'?'btn-primary':'btn-outline');btn.textContent=a.label;
+    btn.onclick=a.onclick||closeModal;f.appendChild(btn);
+  });
+  $('#modalOverlay').classList.add('show');
+}
+function closeModal(){$('#modalOverlay').classList.remove('show')}
+
+function openDetail(id){
+  const a=state.shelf.find(x=>x.id===id);if(!a)return;
+  const w=document.createElement('div');
+  w.innerHTML=`<div class="detail-meta">${a.date} · ${a.wordCount} 字 · ${esc(a.style)}</div>`;
+  if(a.tags&&a.tags.length){const tl=document.createElement('div');tl.className='tag-list';a.tags.forEach(t=>{const s=document.createElement('span');s.className='tag mini';s.textContent=t;tl.appendChild(s)});w.appendChild(tl)}
+  const c=document.createElement('div');c.className='article-content';c.textContent=a.content;w.appendChild(c);
+  w.innerHTML+=`<div class="subsection-title">续写记录</div><div class="history-list">`;
+  const h=(a.history||[]).slice(-10);
+  if(!h.length)w.innerHTML+='<div class="muted">暂无续写记录</div>';
+  else h.forEach(x=>w.innerHTML+=`<div class="history-item"><div class="history-dir">${esc(x.dir||'未填写')}</div><div class="history-time">${esc(x.date)}</div><div class="history-text">${esc((x.text||'').slice(0,200))}...</div></div>`);
+  w.innerHTML+=`</div><label class="field-label">续写方向</label><textarea id="contInput" class="text-area" rows="3" placeholder="例如：两人关系升温..."></textarea>`;
+  openModal('文章详情',w,[
+    {label:'续写',type:'primary',onclick:async()=>{
+      const dir=$('#contInput').value.trim();if(!dir)return toast('请输入方向');
+      const btn=$('#modalFooter .btn-primary');btn.disabled=true;btn.textContent='续写中...';
+      try{
+        const txt=await callAI([{role:'system',content:getSysPrompt()},{role:'user',content:`前文：\n${a.content}\n\n续写方向：${dir}\n要求保持文风，直接输出正文。`}]);
+        a.history=a.history||[];a.history.push({dir,text:txt,date:new Date().toLocaleString()});a.content+='\n\n'+txt;a.wordCount=a.content.length;
+        save();renderShelf();toast('续写成功');openDetail(a.id);
+      }catch(e){toast(e.message);btn.disabled=false;btn.textContent='续写'}
+    }},
+    {label:'关闭',type:'outline',onclick:closeModal}
+  ]);
+}
+
+function openGenerateModal() {
+  const styleOptions = getStyleList().map(s => `<option value="${s}">${s}</option>`).join('');
+  const body = `
+    <div class="field"><label class="field-label">每一篇章字数</label>
+      <select class="select" id="mWordCount">
+        <option value="500">500 字</option><option value="1000">1000 字</option>
+        <option value="2000" selected>2000 字</option><option value="3000">3000 字</option>
+        <option value="5000">5000 字</option><option value="10000">10000 字</option>
+      </select>
+    </div>
+    <div class="field"><label class="field-label">文风设定</label>
+      <select class="select" id="mStyle">${styleOptions}</select>
+    </div>
+    <div class="field"><label class="field-label">AI扩写指令（选填）</label>
+      <textarea class="text-area" id="mExpand" rows="3" placeholder="例如：两人在雨夜重逢，气氛暧昧..."></textarea>
+    </div>
+    <div class="field" style="margin-bottom:0"><label class="field-label">严禁AI生成的内容<span class="req">*</span></label>
+      <textarea class="text-area" id="mForbidden" rows="3" placeholder="例如：政治敏感、暴力..."></textarea>
+    </div>
+  `;
+  openModal('生成设置', body, [
+    {label: '取消', type: 'outline', onclick: closeModal},
+    {label: '开始生成', type: 'primary', onclick: handleGenerateFromModal}
+  ]);
+  $('#mStyle').value = state.selectedPreset;
+}
+
+async function handleGenerateFromModal() {
+  const f = $('#mForbidden').value.trim();
+  if (!f) return toast('请填写严禁生成的内容');
+  const wc = +$('#mWordCount').value, st = $('#mStyle').value, ex = $('#mExpand').value.trim();
+  state.selectedPreset = st; save();
+  const tags = [];
+  Object.values(state.selectedTags).forEach(arr => arr.forEach(t => { if (!tags.includes(t)) tags.push(t) }));
+  if (!tags.length) return toast('请至少选择一个标签');
+  
+  const btn = document.querySelector('#modalFooter .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '生成中...'; }
+  
+  try {
+    const p = `请以【${st}】文风创作约${wc}字同人小说。\n标签：${tags.join('、')}\n${ex ? '扩写：' + ex + '\n' : ''}严禁内容：${f}\n要求：直接输出正文，不加标题解释。`;
+    const txt = await callAI([{role: 'system', content: getSysPrompt()}, {role: 'user', content: p}]);
+    const a = { id: 'a_' + Date.now(), title: tags.slice(0, 3).join('·') || '未命名', date: new Date().toLocaleDateString(), wordCount: txt.length, style: st, tags, content: txt, history: [] };
+    addArticle(a); 
+    toast('生成成功');
+    openDetail(a.id);
+  } catch (e) {
+    toast(e.message);
+    if (btn) { btn.disabled = false; btn.textContent = '开始生成'; }
   }
+}
 
-  function addToShelf() {
-    toast('正在生成...');
-    setTimeout(() => {
-      document.getElementById('shelfEmpty').style.display = 'none';
-      const list = document.getElementById('shelfList');
-      list.style.display = 'block';
-      
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.innerHTML = `
-        <div class="card-title">生成的文章</div>
-        <div class="card-desc">顾砚 x 你 | 晋江文学 | 2000字</div>
-        <div class="btn-row" style="margin-top: 10px;">
-          <button class="btn-sec" onclick="toast('进入编辑模式')">编辑</button>
-          <button class="btn-sec" onclick="this.closest('.card').remove(); if(document.getElementById('shelfList').children.length === 0){document.getElementById('shelfEmpty').style.display = 'block'; document.getElementById('shelfList').style.display = 'none';}">删除</button>
-        </div>
-        <button class="btn-primary" style="padding: 10px; margin-top: 10px;" onclick="openModal('modal-articleDetail')">阅读详情</button>
-      `;
-      list.prepend(card);
-      switchTab('shelf');
-      toast('生成成功');
-    }, 1000);
-  }
-
-  // ================= 文风预设 =================
-  function addCustomStyle() {
-    const name = prompt('请输入自定义文风名称：');
-    if(name && name.trim()) {
-      const sel = document.getElementById('styleSelect');
-      const opt = document.createElement('option');
-      opt.textContent = name.trim();
-      sel.appendChild(opt); sel.value = name.trim();
-      toast('文风已新建并选中');
+function initUpload(btnId,inId,taId,isDocx){
+  const b=$('#'+btnId),i=$('#'+inId),t=$('#'+taId);
+  if(!b||!i||!t)return;
+  b.onclick=()=>i.click();
+  i.onchange=e=>{
+    const file=e.target.files[0];if(!file)return;
+    if(isDocx&&!file.name.endsWith('.docx'))return toast('请选择.docx文件');
+    if(!isDocx&&!file.name.endsWith('.txt'))return toast('请选择.txt文件');
+    const r=new FileReader();
+    if(isDocx){
+      r.onload=ev=>mammoth.extractRawText({arrayBuffer:ev.target.result}).then(res=>{t.value=res.value;t.dispatchEvent(new Event('input'));toast('解析成功')}).catch(()=>toast('解析失败'));
+      r.readAsArrayBuffer(file);
+    }else{
+      r.onload=ev=>{t.value=ev.target.result;t.dispatchEvent(new Event('input'));toast('解析成功')};
+      r.readAsText(file,'utf-8');
     }
+    i.value='';
   }
+}
 
-  // ================= API 预设管理系统 =================
-  // 模拟初始预设数据
-  let apiPresets = {
-    '默认预设': { url: 'https://api.openai.com/v1', key: 'sk-default-key' },
-    '备用预设': { url: 'https://api.deepseek.com/v1', key: 'sk-backup-key' }
+function init(){
+  load();
+  applyTheme(state.theme);applySize(state.fontSize);applyFont(state.fontName);applyWall(state.wallpaper);
+  $('#fontSelect').value=state.fontName;
+  renderTags();renderStyles();renderShelf();
+
+  $$('.nav-item').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));
+  $('#drawerBtn').onclick=()=>$('#drawerOverlay').classList.add('show');
+  $('#drawerOverlay').onclick=e=>{if(e.target.id==='drawerOverlay')$('#drawerOverlay').classList.remove('show')};
+  
+  $$('.drawer-item').forEach(b=>b.onclick=()=>{
+    $('#drawerOverlay').classList.remove('show');
+    const type=b.dataset.drawer;
+    if(type==='close')return;
+    if(type==='phone'){
+      openModal('捡手机',`<p style="font-size:12px;color:var(--sub);margin:0 0 16px">选两个角色，输入指令，生成聊天记录。</p><div class="field"><label class="field-label">角色1</label><input id="c1" class="text-input"></div><div class="field"><label class="field-label">角色2</label><input id="c2" class="text-input"></div><div class="field" style="margin-bottom:0"><label class="field-label">指令</label><textarea id="ins" class="text-area" rows="3"></textarea></div>`,[
+        {label:'生成',type:'primary',onclick:async()=>{
+          const c1=$('#c1').value.trim(),c2=$('#c2').value.trim(),ins=$('#ins').value.trim();
+          if(!c1||!c2||!ins)return toast('请填完整');
+          const btn=document.querySelector('#modalFooter .btn-primary');if(btn){btn.disabled=true;btn.textContent='生成中...'}
+          try{
+            const txt=await callAI([{role:'system',content:getSysPrompt()+'\n创作聊天记录格式，例如【角色】：内容'},{role:'user',content:`角色1:${c1} 角色2:${c2} 指令:${ins}`}]);
+            addArticle({id:'a_'+Date.now(),title:'捡手机·'+c1+'×'+c2,date:new Date().toLocaleDateString(),wordCount:txt.length,style:'捡手机',tags:[c1,c2],content:txt,history:[]});
+            toast('已加入书架');openDetail(state.shelf[0].id);
+          }catch(e){toast(e.message);if(btn){btn.disabled=false;btn.textContent='生成'}}
+        }},{label:'取消',type:'outline',onclick:closeModal}
+      ]);
+    }else if(type==='drama'){
+      const dl = getStyleList().map(s => `<option value="${s}">`).join('');
+      openModal('小剧场', `
+        <p style="font-size:12px;color:var(--sub);margin:0 0 16px">输入指令，自定义字数和文风，生成短篇剧情。</p>
+        <div class="field"><label class="field-label">指令</label><textarea id="ins" class="text-area" rows="3" placeholder="输入指令..."></textarea></div>
+        <div class="field">
+          <label class="field-label">字数（可自定义）</label>
+          <input type="number" id="wc" class="text-input" value="1000" placeholder="例如：1000">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label class="field-label">文风（可自定义）</label>
+          <input type="text" id="st" class="text-input" list="drama-styles" value="晋江文学" placeholder="输入或选择文风">
+          <datalist id="drama-styles">${dl}</datalist>
+        </div>
+      `, [
+        {label: '生成', type: 'primary', onclick: async () => {
+          const ins = $('#ins').value.trim(), wc = $('#wc').value.trim(), st = $('#st').value.trim();
+          if (!ins || !wc || !st) return toast('请填写完整');
+          const btn = document.querySelector('#modalFooter .btn-primary');
+          if (btn) { btn.disabled = true; btn.textContent = '生成中...'; }
+          try {
+            const txt = await callAI([{role: 'system', content: getSysPrompt() + '\n创作短剧剧情'}, {role: 'user', content: `指令:${ins} 字数:${wc} 文风:${st}`}]);
+            addArticle({id: 'a_' + Date.now(), title: '小剧场·' + ins.slice(0, 8), date: new Date().toLocaleDateString(), wordCount: txt.length, style: st, tags: ['小剧场'], content: txt, history: []});
+            toast('已加入书架');
+            openDetail(state.shelf[0].id);
+          } catch (e) {
+            toast(e.message);
+            if (btn) { btn.disabled = false; btn.textContent = '生成'; }
+          }
+        }},
+        {label: '取消', type: 'outline', onclick: closeModal}
+      ]);
+    }
+  });
+  
+  $('#openGenerateBtn').onclick = openGenerateModal;
+  $('#themeQuickBtn').onclick=()=>applyTheme(state.theme==='day'?'night':state.theme==='night'?'korean':'day');
+  $('#modalClose').onclick=closeModal;
+  $('#modalOverlay').onclick=e=>{if(e.target.id==='modalOverlay')closeModal()};
+
+  $$('.section-header').forEach(h=>h.onclick=()=>h.parentElement.classList.toggle('collapsed'));
+  
+  const bindTA=(id,key)=>{const el=$('#'+id);el.value=state[key]||'';el.oninput=()=>{state[key]=el.value;save()}};
+  bindTA('charTextarea','charLib');bindTA('maskTextarea','maskLib');bindTA('worldviewTextarea','wvText');bindTA('worldBookTextarea','wbText');
+
+  initUpload('charDocxBtn','charDocxInput','charTextarea',true);
+  initUpload('maskDocxBtn','maskDocxInput','maskTextarea',true);
+  initUpload('wvDocxBtn','wvDocxInput','worldviewTextarea',true);
+  initUpload('wvTxtBtn','wvTxtInput','worldviewTextarea',false);
+  initUpload('wbDocxBtn','wbDocxInput','worldBookTextarea',true);
+  initUpload('wbTxtBtn','wbTxtInput','worldBookTextarea',false);
+
+  $('#charListBtn').onclick=()=>openModal('角色列表',`<div class="article-content">${esc(state.charLib||'暂无')}</div>`);
+  $('#maskListBtn').onclick=()=>openModal('面具列表',`<div class="article-content">${esc(state.maskLib||'暂无')}</div>`);
+
+  // API 配置 UI 绑定
+  $('#apiUrl').value=state.apiUrl;$('#apiKey').value=state.apiKey;$('#apiModel').value=state.apiModel;
+  $('#apiUrl').oninput=e=>{state.apiUrl=e.target.value;save()};
+  $('#apiKey').oninput=e=>{state.apiKey=e.target.value;save()};
+  $('#apiModel').oninput=e=>{state.apiModel=e.target.value;save()};
+  
+  // 切换密码可见性
+  let isKeyVisible = false;
+  $('#toggleKeyBtn').onclick = () => {
+    isKeyVisible = !isKeyVisible;
+    const keyInput = $('#apiKey');
+    if (isKeyVisible) {
+      keyInput.classList.remove('hide-text');
+      $('#eyeOpen').innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+    } else {
+      keyInput.classList.add('hide-text');
+      $('#eyeOpen').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+    }
   };
   
-  function initApiPresets() {
-    const sel = document.getElementById('apiPresetSelect');
-    sel.innerHTML = '';
-    Object.keys(apiPresets).forEach(name => {
-      const opt = document.createElement('option');
-      opt.value = name; opt.textContent = name;
-      sel.appendChild(opt);
-    });
-    loadPreset(sel.value);
-  }
+  $('#testApiBtn').onclick=async()=>{
+    const b=$('#testApiBtn');b.textContent='测试中';b.disabled=true;
+    try{await callAI([{role:'user',content:'回复：正常'}]);toast('连接成功')}catch(e){toast('失败:'+e.message)}
+    b.textContent='测试连接';b.disabled=false;
+  };
 
-  function loadPreset(name) {
-    if(apiPresets[name]) {
-      document.getElementById('apiUrl').value = apiPresets[name].url;
-      document.getElementById('apiKey').value = apiPresets[name].key;
+  // API 预设逻辑
+  renderPresetSelector();
+  $('#newPresetBtn').onclick = () => {
+    const name = prompt('请输入预设名称');
+    if (!name || !name.trim()) return;
+    state.apiPresets = state.apiPresets || [];
+    if (state.apiPresets.some(p => p.name === name.trim())) return toast('预设名称已存在');
+    state.apiPresets.push({ name: name.trim(), url: state.apiUrl, key: state.apiKey, model: state.apiModel });
+    save(); renderPresetSelector(name.trim()); toast('预设已创建');
+  };
+
+  $('#savePresetBtn').onclick = () => {
+    const name = $('#presetSelector').value;
+    if (!name) return toast('请先选择一个预设');
+    const p = state.apiPresets.find(x => x.name === name);
+    if (p) {
+      p.url = state.apiUrl; p.key = state.apiKey; p.model = state.apiModel;
+      save(); toast('已保存到预设：' + name);
     }
-  }
+  };
 
-  function newPreset() {
-    const name = prompt('请输入新预设名称：');
-    if(name && name.trim()) {
-      if(apiPresets[name.trim()]) { toast('该名称已存在'); return; }
-      
-      // 用当前输入框的值作为新预设的初始值
-      apiPresets[name.trim()] = {
-        url: document.getElementById('apiUrl').value,
-        key: document.getElementById('apiKey').value
-      };
-      
-      const sel = document.getElementById('apiPresetSelect');
-      const opt = document.createElement('option');
-      opt.value = name.trim(); opt.textContent = name.trim();
-      sel.appendChild(opt); sel.value = name.trim();
-      toast('预设已新建并保存');
-    }
-  }
+  $('#deletePresetBtn').onclick = () => {
+    const name = $('#presetSelector').value;
+    if (!name) return toast('请先选择一个预设');
+    if (!confirm(`确定删除预设「${name}」吗？`)) return;
+    state.apiPresets = state.apiPresets.filter(x => x.name !== name);
+    save(); renderPresetSelector(); toast('已删除');
+  };
 
-  function savePreset() {
-    const currentName = document.getElementById('apiPresetSelect').value;
-    if(!currentName) return;
-    apiPresets[currentName] = {
-      url: document.getElementById('apiUrl').value,
-      key: document.getElementById('apiKey').value
-    };
-    toast('当前预设已保存');
-  }
+  $('#presetSelector').onchange = (e) => {
+    const p = state.apiPresets.find(x => x.name === e.target.value);
+    if (!p) return;
+    state.apiUrl = p.url || ''; state.apiKey = p.key || ''; state.apiModel = p.model || 'gpt-3.5-turbo';
+    $('#apiUrl').value = state.apiUrl; $('#apiKey').value = state.apiKey; $('#apiModel').value = state.apiModel;
+    save(); toast('已切换预设：' + p.name);
+  };
 
-  function deletePreset() {
-    const currentName = document.getElementById('apiPresetSelect').value;
-    if(!currentName) return;
-    if(Object.keys(apiPresets).length <= 1) { toast('至少保留一个预设'); return; }
-    
-    if(confirm(`确定要删除预设 "${currentName}" 吗？`)) {
-      delete apiPresets[currentName];
-      initApiPresets(); // 重新初始化并加载第一个
-      toast('预设已删除');
-    }
-  }
+  $('#addStyleBtn').onclick=()=>{const v=prompt('名称');if(v&&v.trim()){state.customPresets.push(v.trim());save();renderStyles();toast('已添加')}};
 
-  function testApi() {
-    toast('正在测试连接...');
-    setTimeout(() => toast('连接成功'), 800);
-  }
+  $('#fontSelect').onchange=e=>{if(e.target.value==='自定义上传'){$('#fontFileInput').click()}else{applyFont(e.target.value)}};
+  $('#fontFileInput').onchange=e=>{
+    const f=e.target.files[0];if(!f)return;
+    const url=URL.createObjectURL(f);
+    const style=document.createElement('style');style.textContent=`@font-face{font-family:'Custom';src:url('${url}')}`;document.head.appendChild(style);
+    applyFont('Custom');toast('字体已应用');
+  };
+  $('#fsMinus').onclick=()=>applySize(state.fontSize-1);
+  $('#fsPlus').onclick=()=>applySize(state.fontSize+1);
+  $('#wallBtn').onclick=()=>$('#wallInput').click();
+  $('#wallInput').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>applyWall(ev.target.result);r.readAsDataURL(f)};
+  $('#wallClearBtn').onclick=()=>applyWall('');
+  $$('#themeSegmented button').forEach(b=>b.onclick=()=>applyTheme(b.dataset.theme));
+}
 
-  // 页面启动初始化
-  initApiPresets();
+document.addEventListener('DOMContentLoaded',()=>{init();});
 </script>
 </body>
 </html>
