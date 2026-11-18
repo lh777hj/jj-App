@@ -14,7 +14,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <style>
-:root{--bg:#FFFFFF;--text:#111111;--sub:#888888;--card:#F7F7F7;--border:#EAEAEA;--accent:#111111;--onAccent:'#FFFFFF';--fs:15px;--font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+:root{--bg:#FFFFFF;--text:#111111;--sub:#888888;--card:#F7F7F7;--border:#EAEAEA;--accent:#111111;--onAccent:#FFFFFF;--fs:15px;--font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;height:100%;overflow:hidden}
 body{font-family:var(--font);font-size:14px;background:var(--bg);color:var(--text);transition:background .3s,color .3s;-webkit-font-smoothing:antialiased}
@@ -61,6 +61,8 @@ svg{display:block}
 .btn-primary:disabled{opacity:.5}
 .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
 .btn-outline:active{background:var(--card)}
+.btn-danger-outline{background:transparent;border:1px solid #D93025;color:#D93025}
+.btn-danger-outline:active{background:rgba(217,48,37,0.1)}
 .btn-block{width:100%;padding:14px;font-size:15px;margin-top:10px}
 .btn-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
 .btn-row .btn{flex:1;font-size:13px;padding:10px 14px}
@@ -210,10 +212,8 @@ svg{display:block}
               <input type="text" id="apiModel" class="text-input" placeholder="gpt-3.5-turbo" autocomplete="off">
               <button class="btn btn-outline" id="fetchModelsBtn" style="white-space:nowrap;padding:0 16px;">拉取模型</button>
             </div>
-            <!-- 全新：拉取成功后显示的原生下拉框 -->
-            <select class="select" id="apiModelSelect" style="display:none; margin-top: 10px;">
-              <option value="">-- 点击从列表选择模型 --</option>
-            </select>
+            <!-- 自定义的按钮，用于打开选择弹窗 -->
+            <button class="btn btn-outline btn-block" id="openModelPickerBtn" style="display:none; margin-top: 10px;">从列表选择模型</button>
           </div>
 
           <div class="btn-row"><button class="btn btn-outline" id="testApiBtn">测试连接</button></div>
@@ -284,6 +284,17 @@ svg{display:block}
           <div class="field" style="margin-bottom:0"><label class="field-label">主题模式</label><div class="segmented" id="themeSegmented"><button data-theme="day" class="active">日间</button><button data-theme="night">夜间</button><button data-theme="korean">韩系</button></div></div>
         </div>
       </div>
+
+      <!-- 9. 危险区域：清空数据 -->
+      <div class="settings-section" style="margin-top: 30px;">
+        <div class="section-body" style="padding-top: 20px;">
+          <button class="btn btn-danger-outline btn-block" id="clearAllDataBtn">清空所有本地数据（恢复出厂设置）</button>
+          <p style="font-size: 11px; color: var(--sub); text-align: center; margin-top: 10px; line-height: 1.5;">
+            点击后将清空 API 配置、书架文章、所有世界观设定及外观设置，且不可恢复。
+          </p>
+        </div>
+      </div>
+
     </section>
   </main>
   <nav class="bottom-bar">
@@ -358,6 +369,8 @@ const state = {
   apiPresets: [],
   charLib:'', maskLib:'', wvText:'', wbText:''
 };
+
+let fetchedModelsList = [];
 
 function save(){try{localStorage.setItem('jj_v1',JSON.stringify(state))}catch(e){}}
 function load(){try{const d=JSON.parse(localStorage.getItem('jj_v1'));if(d)Object.assign(state,d)}catch(e){}}
@@ -677,7 +690,7 @@ function init(){
     }
   };
 
-  // 🚀 强化版拉取模型功能 (带超时和即时反馈)
+  // 🚀 强化版拉取模型功能
   $('#fetchModelsBtn').onclick = async () => {
     const url = (state.apiUrl || '').trim();
     if (!url) return toast('请先填写 API URL');
@@ -686,8 +699,6 @@ function init(){
     const oldText = btn.textContent;
     btn.disabled = true;
     btn.textContent = '请求中...';
-    
-    // 立即给出视觉反馈，证明点击生效
     toast('正在尝试连接 API 接口...');
 
     let baseUrl = url.split('/chat/completions')[0].replace(/\/+$/, '');
@@ -704,10 +715,8 @@ function init(){
 
     for (let ep of pathsToTry) {
       try {
-        console.log('尝试请求:', ep);
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8秒超时防卡死
-
+        const timeoutId = setTimeout(() => controller.abort(), 8000); 
         const res = await fetch(ep, {
           method: 'GET',
           headers: { ...(state.apiKey ? { 'Authorization': 'Bearer ' + state.apiKey } : {}) },
@@ -718,7 +727,7 @@ function init(){
         if (!res.ok) {
           if (res.status === 401) throw new Error('密钥错误(401)');
           if (res.status === 403) throw new Error('无权限(403)');
-          if (res.status === 404) continue; // 404就试下一个路径
+          if (res.status === 404) continue;
           throw new Error('HTTP ' + res.status);
         }
         
@@ -732,54 +741,70 @@ function init(){
         if (!models.length) continue;
         
         models = [...new Set(models)].sort();
+        fetchedModelsList = models; // 存入全局变量
         
-        // 🔥 把拉取到的模型放入原生下拉框
-        const selectEl = $('#apiModelSelect');
-        selectEl.innerHTML = `<option value="">-- 点击选择已拉取到的模型 --</option>` + models.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
-        selectEl.style.display = 'block'; // 显示下拉框
-        selectEl.value = models[0]; // 默认选中第一个
+        // 显示自定义按钮
+        $('#openModelPickerBtn').style.display = 'flex';
         
-        $('#apiModel').value = models[0]; // 同步到输入框
-        state.apiModel = models[0];
-        save();
+        if (!$('#apiModel').value.trim()) { 
+          $('#apiModel').value = models[0]; 
+          state.apiModel = models[0]; 
+          save(); 
+        }
         
-        alert(`✅ 拉取成功！共找到 ${models.length} 个模型。\n\n请点击下方新出现的下拉框进行选择。`);
+        alert(`✅ 拉取成功！共找到 ${models.length} 个模型。\n\n请点击下方的“从列表选择模型”按钮进行选择。`);
         success = true;
         break; 
         
       } catch (err) {
-        console.error('请求报错:', ep, err);
-        if (err.name === 'AbortError') {
-          errorMsg = '请求超时 (该API可能不支持拉取，或网络被阻断)';
-        } else if (err.name === 'TypeError') {
-          errorMsg = '网络错误 (大概率是API不支持跨域请求)';
-        } else {
-          errorMsg = err.message;
-        }
+        if (err.name === 'AbortError') errorMsg = '请求超时';
+        else if (err.name === 'TypeError') errorMsg = '网络错误(跨域拦截)';
+        else errorMsg = err.message;
       }
     }
 
     if (!success) {
-      alert(`❌ 拉取失败！\n原因：${errorMsg}\n\n⚠️ 注意：很多中转 API 出于安全原因，不允许网页直接拉取模型列表（跨域拦截）。\n\n建议：直接手打输入模型名称（如 gpt-3.5-turbo, claude-3-sonnet 等），然后点击“测试连接”看是否能通。`);
+      alert(`❌ 拉取失败！\n原因：${errorMsg}\n\n请尝试直接手打输入模型名称。`);
     }
     
     btn.disabled = false;
     btn.textContent = oldText;
   };
 
-  // 监听原生下拉框的选择事件，同步到输入框
-  $('#apiModelSelect').onchange = (e) => {
-    if (e.target.value) {
-      $('#apiModel').value = e.target.value;
-      state.apiModel = e.target.value;
-      save();
-    }
+  // 🚀 自定义的模型选择弹窗
+  $('#openModelPickerBtn').onclick = () => {
+    if (!fetchedModelsList.length) return;
+    
+    const listHtml = `<div style="display:flex;flex-direction:column;gap:8px;">` + 
+      fetchedModelsList.map(m => `<button class="btn btn-outline" style="justify-content:flex-start;padding:12px 16px;font-size:14px;word-break:break-all;" onclick="window.selectModel('${m}')">${esc(m)}</button>`).join('') + 
+      `</div>`;
+      
+    openModal('选择模型', listHtml, [
+      {label: '取消', type: 'outline', onclick: closeModal}
+    ]);
+  };
+  
+  // 全局方法供弹窗内点击调用
+  window.selectModel = (modelName) => {
+    $('#apiModel').value = modelName;
+    state.apiModel = modelName;
+    save();
+    closeModal();
+    toast('已选择：' + modelName);
   };
   
   $('#testApiBtn').onclick=async()=>{
     const b=$('#testApiBtn');b.textContent='测试中';b.disabled=true;
     try{await callAI([{role:'user',content:'回复：正常'}]);toast('连接成功')}catch(e){toast('失败:'+e.message)}
     b.textContent='测试连接';b.disabled=false;
+  };
+
+  // 清空所有数据（恢复出厂设置）
+  $('#clearAllDataBtn').onclick = () => {
+    if (confirm('⚠️ 警告！\n\n此操作将清空你的所有 API 配置、书架文章、世界观设定以及外观设置。\n\n数据将无法恢复，确定要继续吗？')) {
+      localStorage.removeItem('jj_v1');
+      location.reload(); // 刷新页面
+    }
   };
 
   // API 预设逻辑
