@@ -70,8 +70,8 @@ svg{display:block}
 .section-title{font-size:15px;font-weight:600}.section-desc{font-size:12px;color:var(--sub);margin-top:4px}
 .section-body{padding:0 20px 20px;display:none}
 .settings-section.expanded .section-body{display:block}
-.chevron{transition:transform .3s;color:var(--sub)}
-.settings-section.expanded .chevron{transform:rotate(-90deg)}
+.chevron{transition:transform .3s;color:var(--sub);transform:rotate(-90deg)}
+.settings-section.expanded .chevron{transform:rotate(0deg)}
 
 .field{margin-bottom:16px}.field-label{display:block;font-size:12px;color:var(--sub);margin-bottom:8px}
 .text-input,.text-area,.select{width:100%;background:var(--bg);border:none;border-radius:10px;padding:12px 14px;font-size:14px;transition:box-shadow .2s}
@@ -82,7 +82,7 @@ svg{display:block}
 /* 条目列表 */
 .item-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;max-height:200px;overflow-y:auto;}
 .item-card{background:var(--bg);padding:12px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;}
-.item-info{flex:1;min-width:0;margin-right:10px;}
+.item-info{flex:1;min-width:0;margin-right:10px;cursor:pointer;}
 .item-title{font-size:13.5px;font-weight:500;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .item-desc{font-size:11.5px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .item-del{color:#D93025;font-size:12px;padding:4px 8px;}
@@ -94,10 +94,8 @@ svg{display:block}
 .reader-title{font-size:15px;font-weight:600;flex:1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .reader-content-wrap{flex:1;overflow:hidden;position:relative}
 .reader-content{width:100%;height:100%;padding:0 20px;overflow-y:auto;line-height:1.8;font-size:var(--r-fs,16px)}
-/* 左右翻页模式 */
 .reader-content.mode-page{column-width:100vw;column-gap:20px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;padding:0 20px;word-break:break-word}
 .reader-content.mode-page p{scroll-snap-align:start;margin-top:0}
-/* 续写区域 */
 .reader-append{padding:20px 0 60px 0;}
 .reader-append h4{font-size:14px;color:var(--sub);margin-bottom:10px;border-top:1px dashed var(--sub);padding-top:20px;}
 .reader-history{font-size:13px;color:var(--sub);margin-bottom:16px;background:rgba(128,128,128,0.1);padding:12px;border-radius:8px;}
@@ -116,6 +114,19 @@ svg{display:block}
 .segmented{display:flex;background:var(--card);border-radius:10px;padding:4px}
 .segmented button{flex:1;padding:6px 12px;font-size:13px;border-radius:8px;color:var(--sub)}
 .segmented button.active{background:var(--bg);color:var(--text);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+
+/* =========== 抽屉 =========== */
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:.3s;z-index:100;backdrop-filter:blur(2px)}
+.drawer-overlay.show{opacity:1;pointer-events:auto}
+.drawer{position:absolute;top:0;left:0;bottom:0;width:280px;background:var(--bg);transform:translateX(-100%);transition:.3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:4px 0 24px rgba(0,0,0,.05)}
+.drawer-overlay.show .drawer{transform:translateX(0)}
+.drawer-head{padding:30px 24px 20px}
+.drawer-head h3{margin:0 0 6px;font-size:18px;font-weight:600}
+.drawer-head p{margin:0;font-size:12px;color:var(--sub)}
+.drawer-list{padding:10px 12px}
+.drawer-item{display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;border-radius:12px;font-size:15px;text-align:left;color:var(--text);transition:background .2s}
+.drawer-item:active{background:var(--card)}
+.drawer-item svg{color:var(--sub)}
 
 /* =========== 弹窗与 Toast =========== */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:.3s;z-index:2000}
@@ -142,7 +153,9 @@ svg{display:block}
 
 <div class="app">
   <header class="app-header">
-    <div style="width:40px"></div>
+    <button class="icon-btn" id="drawerBtn">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+    </button>
     <div class="header-title" id="headerTitle">搜索</div>
     <button class="icon-btn" id="themeQuickBtn">☀</button>
   </header>
@@ -165,33 +178,20 @@ svg{display:block}
 
     <!-- 设置页 -->
     <section class="page" id="page-settings">
-      <!-- 库管理 (角色、面具、世界观、世界书) -->
-      <div class="settings-section expanded" id="sec-char">
-        <div class="section-header"><div><div class="section-title">角色库</div><div class="section-desc">管理多个角色卡设定</div></div><span class="chevron">⌄</span></div>
+      
+      <!-- API预设管理 -->
+      <div class="settings-section" id="sec-preset">
+        <div class="section-header"><div><div class="section-title">API 预设管理</div><div class="section-desc">保存多套接口配置</div></div><span class="chevron">⌄</span></div>
         <div class="section-body">
-          <div class="item-list" id="list-char"></div>
-          <button class="btn btn-outline btn-block" onclick="editLibItem('characters')">+ 新建角色卡</button>
-        </div>
-      </div>
-      <div class="settings-section" id="sec-mask">
-        <div class="section-header"><div><div class="section-title">User面具库</div><div class="section-desc">管理多个User设定</div></div><span class="chevron">⌄</span></div>
-        <div class="section-body">
-          <div class="item-list" id="list-mask"></div>
-          <button class="btn btn-outline btn-block" onclick="editLibItem('masks')">+ 新建面具</button>
-        </div>
-      </div>
-      <div class="settings-section" id="sec-wv">
-        <div class="section-header"><div><div class="section-title">世界观设定</div><div class="section-desc">管理多个世界观</div></div><span class="chevron">⌄</span></div>
-        <div class="section-body">
-          <div class="item-list" id="list-wv"></div>
-          <button class="btn btn-outline btn-block" onclick="editLibItem('worldviews')">+ 新建世界观</button>
-        </div>
-      </div>
-      <div class="settings-section" id="sec-wb">
-        <div class="section-header"><div><div class="section-title">世界书</div><div class="section-desc">管理多个世界书词条</div></div><span class="chevron">⌄</span></div>
-        <div class="section-body">
-          <div class="item-list" id="list-wb"></div>
-          <button class="btn btn-outline btn-block" onclick="editLibItem('worldbooks')">+ 新建词条</button>
+          <div class="field">
+            <label class="field-label">当前预设</label>
+            <select class="select" id="presetSelector"><option value="">-- 选择预设 --</option></select>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-outline" onclick="newPreset()">新建预设</button>
+            <button class="btn btn-outline" onclick="saveCurrentPreset()">保存当前</button>
+            <button class="btn btn-outline" onclick="deletePreset()">删除预设</button>
+          </div>
         </div>
       </div>
 
@@ -210,6 +210,58 @@ svg{display:block}
             <button class="btn btn-outline btn-block" id="openModelPickerBtn" style="display:none;margin-top:8px;">选择模型</button>
           </div>
           <button class="btn btn-outline btn-block" id="testApiBtn">测试连接</button>
+        </div>
+      </div>
+
+      <!-- 库管理 (角色、面具、世界观、世界书、文风) -->
+      <div class="settings-section" id="sec-char">
+        <div class="section-header"><div><div class="section-title">角色库</div><div class="section-desc">管理角色卡设定，支持导入</div></div><span class="chevron">⌄</span></div>
+        <div class="section-body">
+          <div class="item-list" id="list-char"></div>
+          <div class="btn-row">
+            <button class="btn btn-outline" style="flex:1" onclick="editLibItem('characters')">+ 手动新建</button>
+            <button class="btn btn-outline" style="flex:1" onclick="triggerImport('characters')">导入文件</button>
+          </div>
+        </div>
+      </div>
+      <div class="settings-section" id="sec-mask">
+        <div class="section-header"><div><div class="section-title">User面具库</div><div class="section-desc">管理User设定，支持导入</div></div><span class="chevron">⌄</span></div>
+        <div class="section-body">
+          <div class="item-list" id="list-mask"></div>
+          <div class="btn-row">
+            <button class="btn btn-outline" style="flex:1" onclick="editLibItem('masks')">+ 手动新建</button>
+            <button class="btn btn-outline" style="flex:1" onclick="triggerImport('masks')">导入文件</button>
+          </div>
+        </div>
+      </div>
+      <div class="settings-section" id="sec-wv">
+        <div class="section-header"><div><div class="section-title">世界观设定</div><div class="section-desc">管理世界观，支持导入</div></div><span class="chevron">⌄</span></div>
+        <div class="section-body">
+          <div class="item-list" id="list-wv"></div>
+          <div class="btn-row">
+            <button class="btn btn-outline" style="flex:1" onclick="editLibItem('worldviews')">+ 手动新建</button>
+            <button class="btn btn-outline" style="flex:1" onclick="triggerImport('worldviews')">导入文件</button>
+          </div>
+        </div>
+      </div>
+      <div class="settings-section" id="sec-wb">
+        <div class="section-header"><div><div class="section-title">世界书</div><div class="section-desc">管理世界书词条，支持导入</div></div><span class="chevron">⌄</span></div>
+        <div class="section-body">
+          <div class="item-list" id="list-wb"></div>
+          <div class="btn-row">
+            <button class="btn btn-outline" style="flex:1" onclick="editLibItem('worldbooks')">+ 手动新建</button>
+            <button class="btn btn-outline" style="flex:1" onclick="triggerImport('worldbooks')">导入文件</button>
+          </div>
+        </div>
+      </div>
+      <div class="settings-section" id="sec-style">
+        <div class="section-header"><div><div class="section-title">文风预设</div><div class="section-desc">管理生成文风</div></div><span class="chevron">⌄</span></div>
+        <div class="section-body">
+          <div class="item-list" id="list-style"></div>
+          <div class="btn-row">
+            <button class="btn btn-outline" style="flex:1" onclick="editLibItem('styles')">+ 手动新建</button>
+            <button class="btn btn-outline" style="flex:1" onclick="triggerImport('styles')">导入文件</button>
+          </div>
         </div>
       </div>
 
@@ -242,6 +294,27 @@ svg{display:block}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg><span>设置</span>
     </button>
   </nav>
+</div>
+
+<!-- ====== 抽屉 ====== -->
+<div class="drawer-overlay" id="drawerOverlay">
+  <aside class="drawer">
+    <div class="drawer-head"><h3>工具箱</h3><p>专属小功能</p></div>
+    <div class="drawer-list">
+      <button class="drawer-item" data-drawer="phone">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+        <span>捡手机</span>
+      </button>
+      <button class="drawer-item" data-drawer="drama">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+        <span>小剧场</span>
+      </button>
+      <button class="drawer-item" data-drawer="close">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <span>关闭</span>
+      </button>
+    </div>
+  </aside>
 </div>
 
 <!-- ====== 沉浸式阅读器 ====== -->
@@ -299,6 +372,9 @@ svg{display:block}
 </div>
 <div id="toast"></div>
 
+<!-- 隐藏的文件输入 -->
+<input type="file" id="fileInput" accept=".txt,.json,.docx" style="display:none">
+
 <script>
 /* ================= 基础工具 ================= */
 const $ = s => document.querySelector(s);
@@ -321,21 +397,21 @@ const TAGS = [
 
 /* ================= 状态管理 ================= */
 const state = {
-  theme:'day', selectedTags:{}, customTags:{}, shelf:[], apiUrl:'', apiKey:'', apiModel:'gpt-3.5-turbo',
-  characters: [], masks: [], worldviews: [], worldbooks: []
+  theme:'day', selectedTags:{}, customTags:{}, shelf:[], 
+  apiUrl:'', apiKey:'', apiModel:'gpt-3.5-turbo',
+  apiPresets: [],
+  characters: [], masks: [], worldviews: [], worldbooks: [],
+  styles: [{id:'s1', title:'晋江文学', content:''}, {id:'s2', title:'起点文学', content:''}, {id:'s3', title:'番茄文学', content:''}, {id:'s4', title:'LOFTER文学', content:''}]
 };
 
-function save(){try{localStorage.setItem('jj_v2',JSON.stringify(state))}catch(e){}}
+function save(){try{localStorage.setItem('jj_v3',JSON.stringify(state))}catch(e){}}
 function load(){
   try{
-    const d=JSON.parse(localStorage.getItem('jj_v2'));
+    const d=JSON.parse(localStorage.getItem('jj_v3'));
     if(d) Object.assign(state, d);
-    // 数据兼容处理：如果旧版是字符串，转为数组
-    ['characters','masks','worldviews','worldbooks'].forEach(k => {
-      if(typeof state[k] === 'string') {
-        if(state[k].trim()) state[k] = [{id:Date.now().toString(), title:'旧版数据', content:state[k]}];
-        else state[k] = [];
-      }
+    // 兼容旧版数据
+    ['characters','masks','worldviews','worldbooks','apiPresets','styles'].forEach(k => {
+      if(!Array.isArray(state[k])) state[k] = [];
     });
   }catch(e){}
 }
@@ -392,29 +468,45 @@ function renderLibs() {
       <div class="item-card">
         <div class="item-info" onclick="editLibItem('${key}', '${item.id}')">
           <div class="item-title">${esc(item.title)}</div>
-          <div class="item-desc">${esc(item.content.substring(0,20))}...</div>
+          ${item.content ? `<div class="item-desc">${esc(item.content.substring(0,20))}...</div>` : ''}
         </div>
         <button class="item-del" onclick="delLibItem('${key}', '${item.id}')">删除</button>
       </div>
     `).join('');
+    if(!state[key].length) el.innerHTML = '<div style="font-size:12px;color:var(--sub);text-align:center;padding:10px;">暂无数据</div>';
   };
   renderList('characters','list-char');
   renderList('masks','list-mask');
   renderList('worldviews','list-wv');
   renderList('worldbooks','list-wb');
+  renderList('styles','list-style');
 }
 
+// 打开编辑/新建弹窗
 window.editLibItem = function(key, id = null) {
   const item = id ? state[key].find(x=>x.id===id) : {title:'', content:''};
+  const isStyle = key === 'styles';
+  
   const body = `
-    <div class="field"><label class="field-label">标题 / 名称</label><input type="text" id="libTitle" class="text-input" value="${esc(item.title)}" placeholder="例如：男主设定、末世背景"></div>
-    <div class="field"><label class="field-label">详细内容</label><textarea id="libContent" class="text-area" rows="8" placeholder="填写具体设定...">${esc(item.content)}</textarea></div>
+    <div class="field"><label class="field-label">${isStyle ? '文风名称' : '标题 / 名称'}</label>
+      <input type="text" id="libTitle" class="text-input" value="${esc(item.title)}" placeholder="${isStyle ? '例如：古风、悬疑' : '例如：男主设定、末世背景'}">
+    </div>
+    ${isStyle ? '' : `
+    <div class="field">
+      <label class="field-label">详细内容</label>
+      <div class="btn-row" style="margin-top:0;margin-bottom:8px;">
+        <button class="btn btn-outline" style="flex:1" onclick="importToTextarea()">导入 docx/txt/json 自动填充</button>
+      </div>
+      <textarea id="libContent" class="text-area" rows="8" placeholder="填写具体设定...">${esc(item.content)}</textarea>
+    </div>
+    `}
   `;
+  
   openModal('编辑设定', body, [
     {label:'保存', type:'primary', onclick:()=>{
       const t = $('#libTitle').value.trim();
-      const c = $('#libContent').value.trim();
-      if(!t) return toast('请填写标题');
+      const c = isStyle ? '' : $('#libContent').value.trim();
+      if(!t) return toast('请填写名称');
       if(id) {
         const target = state[key].find(x=>x.id===id);
         target.title = t; target.content = c;
@@ -426,12 +518,97 @@ window.editLibItem = function(key, id = null) {
     {label:'取消', type:'outline', onclick:closeModal}
   ]);
 }
+
 window.delLibItem = function(key, id) {
   if(confirm('确定删除此设定吗？')) {
     state[key] = state[key].filter(x=>x.id!==id);
     save(); renderLibs();
   }
 }
+
+// 导入文件逻辑
+let currentImportKey = null;
+window.triggerImport = function(key) {
+  currentImportKey = key;
+  $('#fileInput').value = '';
+  $('#fileInput').click();
+}
+
+$('#fileInput').onchange = function(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+  
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  
+  reader.onload = async function(ev) {
+    let text = '';
+    if(ext === 'docx') {
+      try {
+        const res = await mammoth.extractRawText({arrayBuffer: ev.target.result});
+        text = res.value;
+      } catch(err) {
+        return toast('docx 解析失败');
+      }
+    } else if(ext === 'json') {
+      try {
+        text = ev.target.result;
+        const parsed = JSON.parse(text);
+        if(Array.isArray(parsed)) {
+          // 如果是数组，直接批量导入
+          parsed.forEach(item => {
+            if(item.title) state[currentImportKey].push({id:Date.now().toString()+Math.random(), title:item.title, content:item.content||''});
+          });
+          save(); renderLibs(); toast('批量导入成功'); return;
+        } else if (typeof parsed === 'object') {
+           text = parsed.content || JSON.stringify(parsed);
+        }
+      } catch(err) {
+        return toast('JSON 格式错误');
+      }
+    } else {
+      text = ev.target.result;
+    }
+    
+    // 如果是手动触发编辑框的导入
+    if($('#libContent')) {
+      $('#libContent').value = text;
+      toast('导入成功，请点击保存');
+    } else {
+      // 如果直接点击的导入按钮，自动以文件名新建一条
+      const title = file.name.replace(/\.[^/.]+$/, "");
+      state[currentImportKey].push({id:Date.now().toString(), title, content:text});
+      save(); renderLibs(); toast('导入成功，已新建条目');
+    }
+  };
+  
+  if(ext === 'docx') reader.readAsArrayBuffer(file);
+  else reader.readAsText(file);
+};
+
+window.importToTextarea = function() {
+  // 临时改变 input 的触发行为，使其直接填入 textarea
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.txt,.json,.docx';
+  input.onchange = e => {
+    const file = e.target.files[0]; if(!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      let text = '';
+      if(ext==='docx') {
+        const res = await mammoth.extractRawText({arrayBuffer: ev.target.result});
+        text = res.value;
+      } else text = ev.target.result;
+      $('#libContent').value = text;
+      toast('已导入到文本框');
+    };
+    if(ext==='docx') reader.readAsArrayBuffer(file);
+    else reader.readAsText(file);
+  };
+  input.click();
+}
+
 
 /* ================= 生成逻辑 ================= */
 function getSysPrompt(selectedIds) {
@@ -469,15 +646,16 @@ function openGenerateModal() {
   Object.values(state.selectedTags).forEach(arr => arr.forEach(t => { if (!tags.includes(t)) tags.push(t) }));
   if (!tags.length) return toast('请至少选择一个标签');
   
-  // 构建勾选列表
   let checkHtml = '<div class="field"><label class="field-label">勾选本次使用的设定</label>';
   const buildChecks = (key, label) => {
-    if(!state[key].length) return '';
+    if(!state[key] || !state[key].length) return '';
     let h = `<div style="margin-top:8px;font-size:12px;color:var(--sub)">${label}:</div>`;
-    h += state[key].map(x => `<label style="display:inline-flex;align-items:center;margin-right:12px;margin-top:4px;font-size:13px;"><input type="checkbox" value="${x.id}" data-group="${key}" style="margin-right:4px;"> ${esc(x.title)}</label>`).join('');
+    h += state[key].map(x => `<label style="display:inline-flex;align-items:center;margin-right:12px;margin-top:4px;font-size:13px;"><input type="checkbox" value="${x.id}" style="margin-right:4px;"> ${esc(x.title)}</label>`).join('');
     return h;
   };
   checkHtml += buildChecks('characters', '角色') + buildChecks('masks', '面具') + buildChecks('worldviews', '世界观') + buildChecks('worldbooks', '世界书') + '</div>';
+
+  const styleOptions = state.styles.map(s => `<option value="${esc(s.title)}">${esc(s.title)}</option>`).join('');
 
   const body = `
     ${checkHtml}
@@ -486,6 +664,9 @@ function openGenerateModal() {
         <option value="1000">1000 字</option><option value="2000" selected>2000 字</option>
         <option value="3000">3000 字</option><option value="5000">5000 字</option>
       </select>
+    </div>
+    <div class="field"><label class="field-label">文风设定</label>
+      <select class="select" id="mStyle">${styleOptions}</select>
     </div>
     <div class="field"><label class="field-label">AI扩写指令（选填）</label>
       <textarea class="text-area" id="mExpand" rows="3" placeholder="例如：两人在雨夜重逢，气氛暧昧..."></textarea>
@@ -503,9 +684,8 @@ function openGenerateModal() {
 async function handleGenerate(tags) {
   const f = $('#mForbidden').value.trim();
   if (!f) return toast('请填写严禁生成的内容');
-  const wc = $('#mWordCount').value, ex = $('#mExpand').value.trim();
+  const wc = $('#mWordCount').value, ex = $('#mExpand').value.trim(), st = $('#mStyle').value;
   
-  // 收集勾选的 ID
   const selectedIds = [];
   document.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => selectedIds.push(cb.value));
 
@@ -513,7 +693,7 @@ async function handleGenerate(tags) {
   btn.disabled = true; btn.textContent = '生成中...';
   
   try {
-    const p = `请创作约${wc}字同人小说。\n标签：${tags.join('、')}\n${ex ? '具体指令：' + ex + '\n' : ''}严禁内容：${f}\n要求：直接输出正文，不加标题解释。`;
+    const p = `请以【${st}】文风创作约${wc}字同人小说。\n标签：${tags.join('、')}\n${ex ? '具体指令：' + ex + '\n' : ''}严禁内容：${f}\n要求：直接输出正文，不加标题解释。`;
     const txt = await callAI([{role: 'system', content: getSysPrompt(selectedIds)}, {role: 'user', content: p}]);
     
     const newArticle = { 
@@ -643,6 +823,40 @@ function changeReaderFontSize(step) {
   applyReaderTheme();
 }
 
+/* ================= API 预设管理 ================= */
+function renderPresetSelector(selectedName) {
+  const sel = $('#presetSelector');
+  sel.innerHTML = `<option value="">-- 选择预设 --</option>` + (state.apiPresets || []).map(p => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join('');
+  if (selectedName) sel.value = selectedName;
+}
+
+window.newPreset = () => {
+  const name = prompt('请输入预设名称');
+  if (!name || !name.trim()) return;
+  state.apiPresets = state.apiPresets || [];
+  if (state.apiPresets.some(p => p.name === name.trim())) return toast('预设名称已存在');
+  state.apiPresets.push({ name: name.trim(), url: state.apiUrl, key: state.apiKey, model: state.apiModel });
+  save(); renderPresetSelector(name.trim()); toast('预设已创建');
+};
+
+window.saveCurrentPreset = () => {
+  const name = $('#presetSelector').value;
+  if (!name) return toast('请先选择一个预设');
+  const p = state.apiPresets.find(x => x.name === name);
+  if (p) {
+    p.url = state.apiUrl; p.key = state.apiKey; p.model = state.apiModel;
+    save(); toast('已保存到预设：' + name);
+  }
+};
+
+window.deletePreset = () => {
+  const name = $('#presetSelector').value;
+  if (!name) return toast('请先选择一个预设');
+  if (!confirm(`确定删除预设「${name}」吗？`)) return;
+  state.apiPresets = state.apiPresets.filter(x => x.name !== name);
+  save(); renderPresetSelector(); toast('已删除');
+};
+
 /* ================= 系统弹窗与初始化 ================= */
 function openModal(title,body,actions){
   $('#modalTitle').textContent=title;
@@ -661,25 +875,72 @@ function init(){
   applyTheme(state.theme);
   renderTags(); renderLibs(); renderShelf();
   
+  // 导航栏与抽屉
   document.querySelectorAll('.nav-item').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));
   document.querySelectorAll('.section-header').forEach(h=>h.onclick=()=>h.parentElement.classList.toggle('expanded'));
   
-  $('#themeQuickBtn').onclick=()=>applyTheme(state.theme==='day'?'night':state.theme==='night'?'korean':'day');
-  document.querySelectorAll('#themeSegmented button').forEach(b=>b.onclick=()=>applyTheme(b.dataset.theme));
-  $('#modalClose').onclick=closeModal;
+  $('#drawerBtn').onclick=()=>$('#drawerOverlay').classList.add('show');
+  $('#drawerOverlay').onclick=e=>{if(e.target.id==='drawerOverlay')$('#drawerOverlay').classList.remove('show')};
   
-  $('#openGenerateBtn').onclick = openGenerateModal;
-  
-  // API 设定
-  $('#apiUrl').value=state.apiUrl; $('#apiKey').value=state.apiKey; $('#apiModel').value=state.apiModel;
-  $('#apiUrl').oninput=e=>{state.apiUrl=e.target.value;save()};
-  $('#apiKey').oninput=e=>{state.apiKey=e.target.value;save()};
-  $('#apiModel').oninput=e=>{state.apiModel=e.target.value;save()};
-  
-  // 阅读器事件
+  document.querySelectorAll('.drawer-item').forEach(b=>b.onclick=()=>{
+    $('#drawerOverlay').classList.remove('show');
+    const type=b.dataset.drawer;
+    if(type==='close')return;
+    if(type==='phone'){
+      // 捡手机
+      const charOpts = state.characters.map(c=>`<option value="${esc(c.content)}">${esc(c.title)}</option>`).join('');
+      const maskOpts = state.masks.map(m=>`<option value="${esc(m.content)}">${esc(m.title)}</option>`).join('');
+      openModal('捡手机',`
+        <p style="font-size:12px;color:var(--sub);margin:0 0 16px">选择设定，生成聊天记录。</p>
+        <div class="field"><label class="field-label">角色1</label><select id="pC1" class="select"><option value="">-- 选择角色库 --</option>${charOpts}</select></div>
+        <div class="field"><label class="field-label">角色2</label><select id="pC2" class="select"><option value="">-- 选择角色库 --</option>${charOpts}</select></div>
+        <div class="field"><label class="field-label">User面具 (选填)</label><select id="pM" class="select"><option value="">-- 选择面具 --</option>${maskOpts}</select></div>
+        <div class="field" style="margin-bottom:0"><label class="field-label">聊天指令</label><textarea id="pIns" class="text-area" rows="3" placeholder="例如：两人因为一瓶水吵架..."></textarea></div>
+      `,[
+        {label:'生成',type:'primary',onclick:async()=>{
+          const c1=$('#pC1').value.trim(),c2=$('#pC2').value.trim(),m=$('#pM').value.trim(),ins=$('#pIns').value.trim();
+          if(!c1||!c2||!ins)return toast('请选择角色并填写指令');
+          const btn=document.querySelector('#modalFooter .btn-primary');btn.disabled=true;btn.textContent='生成中...';
+          try{
+            let sys = getSysPrompt([]);
+            sys += `\n【角色1设定】\n${c1}\n【角色2设定】\n${c2}`;
+            if(m) sys += `\n【User面具】\n${m}`;
+            sys += '\n请创作聊天记录格式，例如【角色】：内容';
+            const txt=await callAI([{role:'system',content:sys},{role:'user',content:`指令：${ins}`}]);
+            const a = { id:'a_'+Date.now(), title:'捡手机·聊天记录', date:new Date().toLocaleDateString(), content:txt, history:[] };
+            state.shelf.unshift(a); save(); renderShelf(); closeModal(); toast('生成成功'); openReader(a.id);
+          }catch(e){toast(e.message);btn.disabled=false;btn.textContent='生成'}
+        }},{label:'取消',type:'outline',onclick:closeModal}
+      ]);
+    }else if(type==='drama'){
+      // 小剧场
+      const styleOpts = state.styles.map(s=>`<option value="${esc(s.title)}">${esc(s.title)}</option>`).join('');
+      openModal('小剧场', `
+        <p style="font-size:12px;color:var(--sub);margin:0 0 16px">输入剧情指令，生成短篇。</p>
+        <div class="field"><label class="field-label">剧情提示词</label><textarea id="dIns" class="text-area" rows="3" placeholder="例如：末日废土下的重逢..."></textarea></div>
+        <div class="field"><label class="field-label">字数</label><input type="number" id="dWc" class="text-input" value="1000"></div>
+        <div class="field" style="margin-bottom:0"><label class="field-label">文风</label><select id="dSt" class="select">${styleOpts}</select></div>
+      `, [
+        {label: '生成', type: 'primary', onclick: async () => {
+          const ins = $('#dIns').value.trim(), wc = $('#dWc').value.trim(), st = $('#dSt').value.trim();
+          if (!ins || !wc || !st) return toast('请填写完整');
+          const btn = document.querySelector('#modalFooter .btn-primary'); btn.disabled = true; btn.textContent = '生成中...';
+          try {
+            const txt = await callAI([{role: 'system', content: getSysPrompt([]) + `\n请以【${st}】文风创作。`}, {role: 'user', content: `指令:${ins}\n字数:约${wc}字`}]);
+            const a = { id: 'a_' + Date.now(), title: '小剧场·' + ins.slice(0, 8), date: new Date().toLocaleDateString(), content: txt, history: []};
+            state.shelf.unshift(a); save(); renderShelf(); closeModal(); toast('生成成功'); openReader(a.id);
+          } catch (e) {
+            toast(e.message); btn.disabled = false; btn.textContent = '生成';
+          }
+        }},
+        {label: '取消', type: 'outline', onclick: closeModal}
+      ]);
+    }
+  });
+
+  // 阅读器设置事件
   $('#readerBackBtn').onclick = closeReader;
   $('#readerSettingBtn').onclick = openReaderSettings;
-  
   document.querySelectorAll('#readerBgGroup .r-color-btn').forEach(b => {
     b.onclick = () => { readerSettings.bg = b.dataset.bg; readerSettings.text = b.dataset.txt; applyReaderTheme(); };
   });
@@ -692,21 +953,66 @@ function init(){
     };
   });
 
-  // 数据重置
+  // API 事件
+  $('#presetSelector').onchange = (e) => {
+    const p = state.apiPresets.find(x => x.name === e.target.value);
+    if (!p) return;
+    state.apiUrl = p.url || ''; state.apiKey = p.key || ''; state.apiModel = p.model || 'gpt-3.5-turbo';
+    $('#apiUrl').value = state.apiUrl; $('#apiKey').value = state.apiKey; $('#apiModel').value = state.apiModel;
+    save(); toast('已切换预设');
+  };
+  $('#apiUrl').value=state.apiUrl; $('#apiKey').value=state.apiKey; $('#apiModel').value=state.apiModel;
+  $('#apiUrl').oninput=e=>{state.apiUrl=e.target.value;save()};
+  $('#apiKey').oninput=e=>{state.apiKey=e.target.value;save()};
+  $('#apiModel').oninput=e=>{state.apiModel=e.target.value;save()};
+  
+  $('#themeQuickBtn').onclick=()=>applyTheme(state.theme==='day'?'night':state.theme==='night'?'korean':'day');
+  document.querySelectorAll('#themeSegmented button').forEach(b=>b.onclick=()=>applyTheme(b.dataset.theme));
+  
   $('#clearAllDataBtn').onclick = () => {
     if (confirm('⚠️ 警告！\n\n将清空所有文章、设定和配置，且无法恢复。确定吗？')) {
-      localStorage.removeItem('jj_v2'); location.reload();
+      localStorage.removeItem('jj_v3'); location.reload();
     }
   };
   
-  // 模拟 API 拉取(略去复杂的逻辑，保留按钮)
-  $('#fetchModelsBtn').onclick = () => toast('已跳过拉取，请直接输入模型名');
+  $('#openGenerateBtn').onclick = openGenerateModal;
+  
+  // 保留简单的拉取模型逻辑
+  $('#fetchModelsBtn').onclick = async () => {
+    const url = (state.apiUrl || '').trim();
+    if (!url) return toast('请先填写 API URL');
+    const btn = $('#fetchModelsBtn'); const oldText = btn.textContent;
+    btn.disabled = true; btn.textContent = '请求中...';
+    try {
+      let ep = url.replace(/\/+$/, '') + '/models';
+      const res = await fetch(ep, { headers: { 'Authorization': 'Bearer ' + state.apiKey } });
+      if(!res.ok) throw new Error('请求失败');
+      const data = await res.json();
+      if(data && Array.isArray(data.data)) {
+        // 存入临时列表并弹窗
+        const models = data.data.map(m=>m.id).sort();
+        const listHtml = `<div style="display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;">` + 
+          models.map(m => `<button class="btn btn-outline" style="justify-content:flex-start;padding:12px;font-size:14px;word-break:break-all;" onclick="document.getElementById('apiModel').value='${m}';state.apiModel='${m}';save();closeModal();toast('已选择模型');">${esc(m)}</button>`).join('') + 
+          `</div>`;
+        openModal('选择模型', listHtml, [{label:'取消', type:'outline', onclick:closeModal}]);
+      } else {
+        throw new Error('返回格式不支持');
+      }
+    } catch(e) {
+      toast('拉取失败: ' + e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = oldText;
+    }
+  };
+  
   $('#testApiBtn').onclick = async () => {
     const b=$('#testApiBtn');b.textContent='测试中...';b.disabled=true;
     try{ await callAI([{role:'user',content:'回复正常'}]); toast('连接成功'); }
     catch(e){ toast('失败:'+e.message); }
     b.textContent='测试连接';b.disabled=false;
   };
+
+  $('#modalClose').onclick=closeModal;
 }
 
 document.addEventListener('DOMContentLoaded', init);
