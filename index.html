@@ -204,9 +204,9 @@ svg{display:block}
             </div>
           </div>
           <div class="field">
-            <label class="field-label">模型名称（可手动输入或选择）</label>
+            <label class="field-label">模型名称（下拉选择）</label>
             <div style="display:flex;gap:10px;">
-              <input type="text" id="apiModel" class="text-input" placeholder="gpt-3.5-turbo" autocomplete="off" list="model-list">
+              <input type="text" id="apiModel" class="text-input" placeholder="点击右侧拉取模型" autocomplete="off" list="model-list">
               <button class="btn btn-outline" id="fetchModelsBtn" style="white-space:nowrap;padding:0 16px;">拉取模型</button>
             </div>
             <datalist id="model-list"></datalist>
@@ -331,7 +331,7 @@ const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 let toastT;
-function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3000);}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),5000);} // 延长提示时间以便看清错误
 
 const THEMES = {
   day:{bg:'#FFFFFF',text:'#111111',sub:'#888888',card:'#F7F7F7',border:'#EAEAEA',accent:'#111111',onAccent:'#FFFFFF'},
@@ -672,7 +672,7 @@ function init(){
     }
   };
 
-  // 拉取模型功能
+  // 🚀 强化版拉取模型功能
   $('#fetchModelsBtn').onclick = async () => {
     const url = (state.apiUrl || '').trim();
     if (!url) return toast('请先填写 API URL');
@@ -682,50 +682,89 @@ function init(){
     btn.disabled = true;
     btn.textContent = '拉取中...';
     
-    try {
-      let ep = url.replace(/\/+$/, '');
-      // 智能补全 /models 路径
-      if (ep.endsWith('/chat/completions')) ep = ep.replace('/chat/completions', '/models');
-      else if (!ep.endsWith('/models')) ep += '/models';
-      
-      const res = await fetch(ep, {
-        method: 'GET',
-        headers: {
-          ...(state.apiKey ? { 'Authorization': 'Bearer ' + state.apiKey } : {})
-        }
-      });
-      
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      
-      let models = [];
-      if (data && Array.isArray(data.data)) {
-        models = data.data.map(m => m.id);
-      } else if (Array.isArray(data)) {
-        models = data.map(m => m.id || m.name || m);
-      } else {
-        throw new Error('返回格式不支持');
-      }
-      
-      if (!models.length) throw new Error('未找到模型');
-      
-      models.sort();
-      $('#model-list').innerHTML = models.map(m => `<option value="${esc(m)}">`).join('');
-      toast('成功拉取 ' + models.length + ' 个模型');
-      
-      if (!$('#apiModel').value.trim()) {
-        $('#apiModel').value = models[0];
-        state.apiModel = models[0];
-        save();
-      }
-    } catch (err) {
-      console.error('拉取模型失败:', err);
-      // 给用户更直观的反馈
-      toast('拉取失败: ' + err.message + ' (可能是CORS跨域限制，请直接手动输入模型名)');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = oldText;
+    // 智能生成可能的模型接口路径
+    let pathsToTry = [];
+    let baseUrl = url.split('/chat/completions')[0].replace(/\/+$/, '');
+    
+    if (baseUrl.endsWith('/v1')) {
+      pathsToTry.push(baseUrl + '/models');
+    } else {
+      pathsToTry.push(baseUrl + '/v1/models');
+      pathsToTry.push(baseUrl + '/models');
     }
+
+    let success = false;
+    let lastErrorMsg = '';
+
+    for (let ep of pathsToTry) {
+      try {
+        console.log('尝试请求模型列表:', ep);
+        const res = await fetch(ep, {
+          method: 'GET',
+          headers: {
+            ...(state.apiKey ? { 'Authorization': 'Bearer ' + state.apiKey } : {})
+          }
+        });
+        
+        if (!res.ok) {
+          if (res.status === 401) throw new Error('API密钥错误 (401)');
+          if (res.status === 403) throw new Error('API密钥无权限 (403)');
+          if (res.status === 404) continue; // 路径不对，尝试下一个
+          throw new Error('HTTP错误 ' + res.status);
+        }
+        
+        const data = await res.json();
+        let models = [];
+        
+        // 兼容各种常见的返回格式
+        if (data && Array.isArray(data.data)) {
+          models = data.data.map(m => m.id);
+        } else if (data && Array.isArray(data.models)) {
+          models = data.models.map(m => m.id || m.name || m);
+        } else if (Array.isArray(data)) {
+          models = data.map(m => m.id || m.name || m);
+        } else {
+          continue; 
+        }
+        
+        if (!models.length) continue;
+        
+        // 去重并排序
+        models = [...new Set(models)].sort();
+        $('#model-list').innerHTML = models.map(m => `<option value="${esc(m)}">`).join('');
+        toast('成功拉取 ' + models.length + ' 个模型');
+        
+        if (!$('#apiModel').value.trim() && models.length > 0) {
+          $('#apiModel').value = models[0];
+          state.apiModel = models[0];
+          save();
+        }
+        success = true;
+        break; // 成功后跳出循环
+        
+      } catch (err) {
+        console.error('请求失败:', ep, err);
+        lastErrorMsg = err.message;
+        // 网络错误大概率是跨域
+        if (err.name === 'TypeError' || err.message.includes('fetch')) {
+          lastErrorMsg = '网络错误/跨域拦截 (CORS)';
+        }
+      }
+    }
+
+    if (!success) {
+      // 给出详细的原因诊断
+      let advice = '请检查网络或 API 地址。';
+      if (lastErrorMsg.includes('跨域拦截')) advice = '你的 API 提供商不允许网页请求。请尝试更换 API，或手动填写模型名。';
+      else if (lastErrorMsg.includes('401')) advice = '密钥错误，请重新输入。';
+      else if (lastErrorMsg.includes('404')) advice = '找不到模型接口路径。请检查 API URL 是否填错（通常需以 /v1 结尾）。';
+      
+      toast('拉取失败: ' + lastErrorMsg);
+      alert(`拉取模型失败！\n\n原因：${lastErrorMsg}\n\n建议：${advice}`);
+    }
+    
+    btn.disabled = false;
+    btn.textContent = oldText;
   };
   
   $('#testApiBtn').onclick=async()=>{
