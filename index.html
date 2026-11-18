@@ -18,6 +18,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden}
 body{font-family:var(--font);font-size:14px;background:var(--bg);color:var(--text);transition:background .3s,color .3s;-webkit-font-smoothing:antialiased}
 button{font-family:inherit;cursor:pointer;outline:none;border:none;background:none}
 input,textarea,select{font-family:inherit;color:inherit;outline:none}
+.hide-text{-webkit-text-security:disc} /* 隐藏文字的魔法 */
 .docx-file-input{display:none}
 svg{display:block}
 
@@ -78,6 +79,12 @@ svg{display:block}
 .text-area{resize:vertical;min-height:80px;line-height:1.6}
 .select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--sub) 50%),linear-gradient(135deg,var(--sub) 50%,transparent 50%);background-position:calc(100% - 16px) 50%,calc(100% - 11px) 50%;background-size:4px 4px;background-repeat:no-repeat;padding-right:36px}
 .btn-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+
+/* 密码框与眼睛图标 */
+.pwd-wrap{position:relative}
+.pwd-wrap .text-input{padding-right:44px}
+.eye-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--sub);cursor:pointer;padding:4px}
+.eye-btn svg{width:18px;height:18px}
 
 /* 条目列表 */
 .item-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;max-height:200px;overflow-y:auto;}
@@ -199,15 +206,22 @@ svg{display:block}
       <div class="settings-section" id="sec-api">
         <div class="section-header"><div><div class="section-title">API 配置</div><div class="section-desc">OpenAI 兼容接口</div></div><span class="chevron">⌄</span></div>
         <div class="section-body">
-          <div class="field"><label class="field-label">API URL</label><input type="text" id="apiUrl" class="text-input" placeholder="https://api.example.com/v1"></div>
-          <div class="field"><label class="field-label">API 密钥</label><input type="password" id="apiKey" class="text-input" placeholder="sk-..."></div>
+          <div class="field"><label class="field-label">API URL</label><input type="text" id="apiUrl" class="text-input" placeholder="https://api.example.com/v1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
+          <div class="field">
+            <label class="field-label">API 密钥</label>
+            <div class="pwd-wrap">
+              <input type="text" id="apiKey" class="text-input hide-text" placeholder="sk-..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+              <button class="eye-btn" id="toggleKeyBtn">
+                <svg id="eyeOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              </button>
+            </div>
+          </div>
           <div class="field">
             <label class="field-label">模型名称</label>
             <div style="display:flex;gap:8px;">
-              <input type="text" id="apiModel" class="text-input" placeholder="gpt-3.5-turbo" style="flex:1;">
+              <input type="text" id="apiModel" class="text-input" placeholder="gpt-3.5-turbo" style="flex:1;" autocomplete="off">
               <button class="btn btn-outline" id="fetchModelsBtn" style="padding:0 12px;white-space:nowrap;">拉取</button>
             </div>
-            <button class="btn btn-outline btn-block" id="openModelPickerBtn" style="display:none;margin-top:8px;">选择模型</button>
           </div>
           <button class="btn btn-outline btn-block" id="testApiBtn">测试连接</button>
         </div>
@@ -413,6 +427,7 @@ function load(){
     ['characters','masks','worldviews','worldbooks','apiPresets','styles'].forEach(k => {
       if(!Array.isArray(state[k])) state[k] = [];
     });
+    if(!state.styles.length) state.styles = [{id:'s1', title:'晋江文学', content:''}, {id:'s2', title:'起点文学', content:''}];
   }catch(e){}
 }
 
@@ -547,15 +562,12 @@ $('#fileInput').onchange = function(e) {
       try {
         const res = await mammoth.extractRawText({arrayBuffer: ev.target.result});
         text = res.value;
-      } catch(err) {
-        return toast('docx 解析失败');
-      }
+      } catch(err) { return toast('docx 解析失败'); }
     } else if(ext === 'json') {
       try {
         text = ev.target.result;
         const parsed = JSON.parse(text);
         if(Array.isArray(parsed)) {
-          // 如果是数组，直接批量导入
           parsed.forEach(item => {
             if(item.title) state[currentImportKey].push({id:Date.now().toString()+Math.random(), title:item.title, content:item.content||''});
           });
@@ -563,19 +575,15 @@ $('#fileInput').onchange = function(e) {
         } else if (typeof parsed === 'object') {
            text = parsed.content || JSON.stringify(parsed);
         }
-      } catch(err) {
-        return toast('JSON 格式错误');
-      }
+      } catch(err) { return toast('JSON 格式错误'); }
     } else {
       text = ev.target.result;
     }
     
-    // 如果是手动触发编辑框的导入
     if($('#libContent')) {
       $('#libContent').value = text;
       toast('导入成功，请点击保存');
     } else {
-      // 如果直接点击的导入按钮，自动以文件名新建一条
       const title = file.name.replace(/\.[^/.]+$/, "");
       state[currentImportKey].push({id:Date.now().toString(), title, content:text});
       save(); renderLibs(); toast('导入成功，已新建条目');
@@ -587,7 +595,6 @@ $('#fileInput').onchange = function(e) {
 };
 
 window.importToTextarea = function() {
-  // 临时改变 input 的触发行为，使其直接填入 textarea
   const input = document.createElement('input');
   input.type = 'file'; input.accept = '.txt,.json,.docx';
   input.onchange = e => {
@@ -608,7 +615,6 @@ window.importToTextarea = function() {
   };
   input.click();
 }
-
 
 /* ================= 生成逻辑 ================= */
 function getSysPrompt(selectedIds) {
@@ -966,6 +972,20 @@ function init(){
   $('#apiKey').oninput=e=>{state.apiKey=e.target.value;save()};
   $('#apiModel').oninput=e=>{state.apiModel=e.target.value;save()};
   
+  // 眼睛图标密码显示/隐藏
+  let isKeyVisible = false;
+  $('#toggleKeyBtn').onclick = () => {
+    isKeyVisible = !isKeyVisible;
+    const keyInput = $('#apiKey');
+    if (isKeyVisible) {
+      keyInput.classList.remove('hide-text');
+      $('#eyeOpen').innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+    } else {
+      keyInput.classList.add('hide-text');
+      $('#eyeOpen').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+    }
+  };
+  
   $('#themeQuickBtn').onclick=()=>applyTheme(state.theme==='day'?'night':state.theme==='night'?'korean':'day');
   document.querySelectorAll('#themeSegmented button').forEach(b=>b.onclick=()=>applyTheme(b.dataset.theme));
   
@@ -989,7 +1009,6 @@ function init(){
       if(!res.ok) throw new Error('请求失败');
       const data = await res.json();
       if(data && Array.isArray(data.data)) {
-        // 存入临时列表并弹窗
         const models = data.data.map(m=>m.id).sort();
         const listHtml = `<div style="display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;">` + 
           models.map(m => `<button class="btn btn-outline" style="justify-content:flex-start;padding:12px;font-size:14px;word-break:break-all;" onclick="document.getElementById('apiModel').value='${m}';state.apiModel='${m}';save();closeModal();toast('已选择模型');">${esc(m)}</button>`).join('') + 
