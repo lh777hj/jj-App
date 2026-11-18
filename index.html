@@ -14,7 +14,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <style>
-:root{--bg:#FFFFFF;--text:#111111;--sub:#888888;--card:#F7F7F7;--border:#EAEAEA;--accent:#111111;--onAccent:#FFFFFF;--fs:15px;--font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+:root{--bg:#FFFFFF;--text:#111111;--sub:#888888;--card:#F7F7F7;--border:#EAEAEA;--accent:#111111;--onAccent:'#FFFFFF';--fs:15px;--font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;height:100%;overflow:hidden}
 body{font-family:var(--font);font-size:14px;background:var(--bg);color:var(--text);transition:background .3s,color .3s;-webkit-font-smoothing:antialiased}
@@ -203,14 +203,19 @@ svg{display:block}
               </button>
             </div>
           </div>
+          
           <div class="field">
-            <label class="field-label">模型名称（可点击右侧拉取）</label>
+            <label class="field-label">模型名称（可手动输入）</label>
             <div style="display:flex;gap:10px;">
-              <input type="text" id="apiModel" class="text-input" placeholder="gpt-3.5-turbo" autocomplete="off" list="model-list">
+              <input type="text" id="apiModel" class="text-input" placeholder="gpt-3.5-turbo" autocomplete="off">
               <button class="btn btn-outline" id="fetchModelsBtn" style="white-space:nowrap;padding:0 16px;">拉取模型</button>
             </div>
-            <datalist id="model-list"></datalist>
+            <!-- 全新：拉取成功后显示的原生下拉框 -->
+            <select class="select" id="apiModelSelect" style="display:none; margin-top: 10px;">
+              <option value="">-- 点击从列表选择模型 --</option>
+            </select>
           </div>
+
           <div class="btn-row"><button class="btn btn-outline" id="testApiBtn">测试连接</button></div>
         </div>
       </div>
@@ -727,11 +732,18 @@ function init(){
         if (!models.length) continue;
         
         models = [...new Set(models)].sort();
-        $('#model-list').innerHTML = models.map(m => `<option value="${esc(m)}">`).join('');
         
-        alert(`✅ 拉取成功！共找到 ${models.length} 个模型。\n\n请在输入框里点击一下，即可在下方选择。`);
-        if (!$('#apiModel').value.trim()) { $('#apiModel').value = models[0]; state.apiModel = models[0]; save(); }
+        // 🔥 把拉取到的模型放入原生下拉框
+        const selectEl = $('#apiModelSelect');
+        selectEl.innerHTML = `<option value="">-- 点击选择已拉取到的模型 --</option>` + models.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+        selectEl.style.display = 'block'; // 显示下拉框
+        selectEl.value = models[0]; // 默认选中第一个
         
+        $('#apiModel').value = models[0]; // 同步到输入框
+        state.apiModel = models[0];
+        save();
+        
+        alert(`✅ 拉取成功！共找到 ${models.length} 个模型。\n\n请点击下方新出现的下拉框进行选择。`);
         success = true;
         break; 
         
@@ -753,6 +765,15 @@ function init(){
     
     btn.disabled = false;
     btn.textContent = oldText;
+  };
+
+  // 监听原生下拉框的选择事件，同步到输入框
+  $('#apiModelSelect').onchange = (e) => {
+    if (e.target.value) {
+      $('#apiModel').value = e.target.value;
+      state.apiModel = e.target.value;
+      save();
+    }
   };
   
   $('#testApiBtn').onclick=async()=>{
