@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>同人文生成器</title>
+<title>白水鉴心</title>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#FFFFFF">
-<link rel="manifest" href="./manifest.json">
+<link id="dynamic-manifest" rel="manifest" href="./manifest.json">
+<link id="apple-touch-icon" rel="apple-touch-icon" href="./icon-192.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <style>
 /* =========== 全局基础样式 =========== */
@@ -56,7 +57,8 @@ svg{display:block}
 .shelf-header{display:flex;justify-content:space-between;font-size:12px;color:var(--sub);margin-bottom:16px}
 .shelf-item{display:flex;align-items:center;gap:16px;background:var(--card);border-radius:16px;padding:16px;margin-bottom:12px;cursor:pointer}
 .shelf-item:active{transform:scale(.98)}
-.shelf-cover{flex:0 0 auto;width:44px;height:58px;border-radius:6px;background:var(--border);display:flex;align-items:center;justify-content:center}
+.shelf-cover{flex:0 0 auto;width:44px;height:58px;border-radius:6px;background:var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.shelf-cover img{width:100%;height:100%;object-fit:cover}
 .shelf-info{flex:1;min-width:0}
 .shelf-title{font-size:15px;font-weight:600;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .shelf-meta{font-size:12px;color:var(--sub)}
@@ -154,6 +156,10 @@ svg{display:block}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--sub);font-size:10px}
 .nav-item.active{color:var(--text)}
 .nav-item svg{width:22px;height:22px}
+
+/* 阅读器字体选择 */
+.r-font-select{min-width:140px;width:auto;padding:8px 32px 8px 12px;font-size:13px;background:var(--card);border-radius:8px;border:none;color:var(--text);appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--sub) 50%),linear-gradient(135deg,var(--sub) 50%,transparent 50%);background-position:calc(100% - 12px) 50%,calc(100% - 8px) 50%;background-size:4px 4px;background-repeat:no-repeat}
+.r-font-upload-name{font-size:12px;color:var(--sub);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -283,10 +289,21 @@ svg{display:block}
       <div class="settings-section" id="sec-appearance">
         <div class="section-header"><div><div class="section-title">外观与主题</div><div class="section-desc">全局主题</div></div><span class="chevron">⌄</span></div>
         <div class="section-body">
-          <div class="segmented" id="themeSegmented">
+          <div class="segmented" id="themeSegmented" style="margin-bottom:16px;">
             <button data-theme="day" class="active">日间</button>
             <button data-theme="night">夜间</button>
             <button data-theme="korean">韩系</button>
+          </div>
+          
+          <div class="field" style="margin-bottom:0; border-top:1px solid var(--border); padding-top:16px;">
+            <label class="field-label">自定义 App 桌面图标</label>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div id="appIconPreview" style="width:50px;height:50px;border-radius:12px;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                <span style="font-size:10px;color:var(--sub);">默认</span>
+              </div>
+              <button class="btn btn-outline" onclick="document.getElementById('appIconInput').click()">上传新图标</button>
+            </div>
+            <p style="font-size:11px;color:var(--sub);margin-top:8px;line-height:1.5;">注意：上传后需长按桌面旧图标删除，重新在浏览器“添加到主屏幕”方可生效。</p>
           </div>
         </div>
       </div>
@@ -313,7 +330,7 @@ svg{display:block}
 <!-- ====== 抽屉 ====== -->
 <div class="drawer-overlay" id="drawerOverlay">
   <aside class="drawer">
-    <div class="drawer-head"><h3>工具箱</h3><p>专属小功能</p></div>
+    <div class="drawer-head"><h3>白水鉴心</h3><p>专属小功能</p></div>
     <div class="drawer-list">
       <button class="drawer-item" data-drawer="phone">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
@@ -359,6 +376,23 @@ svg{display:block}
       </div>
     </div>
     <div class="r-setting-row">
+      <span class="r-setting-label">字体样式</span>
+      <select class="r-font-select" id="readerFontSelect">
+        <option value="kaiti">课本楷体</option>
+        <option value="system">系统默认</option>
+        <option value="songti">宋体</option>
+        <option value="heiti">黑体</option>
+        <option value="custom">自定义字体</option>
+      </select>
+    </div>
+    <div class="r-setting-row" id="customFontRow" style="display:none;">
+      <span class="r-setting-label"></span>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button class="btn btn-outline" style="padding:8px 14px;font-size:13px" onclick="document.getElementById('fontUploadInput').click()">上传字体文件</button>
+        <span class="r-font-upload-name" id="customFontName"></span>
+      </div>
+    </div>
+    <div class="r-setting-row">
       <span class="r-setting-label">字号大小</span>
       <div style="display:flex;gap:10px;">
         <button class="btn btn-outline" onclick="changeReaderFontSize(-1)">A-</button>
@@ -376,7 +410,8 @@ svg{display:block}
   </div>
 </div>
 
-<!-- ====== 通用弹窗 ====== -->
+<input type="file" id="fontUploadInput" accept=".ttf,.otf,.woff,.woff2" style="display:none">
+  <!-- ====== 通用弹窗 ====== -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <div class="modal-header"><h2 id="modalTitle">标题</h2><button class="icon-btn" id="modalClose">✕</button></div>
@@ -388,13 +423,15 @@ svg{display:block}
 
 <!-- 隐藏的文件输入 -->
 <input type="file" id="fileInput" accept=".txt,.json,.docx" style="display:none">
+<input type="file" id="coverInput" accept="image/*" style="display:none">
+<input type="file" id="appIconInput" accept="image/*" style="display:none">
 
 <script>
 /* ================= 基础工具 ================= */
 const $ = s => document.querySelector(s);
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 let toastT;
-function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3000);}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3500);} // 稍微延长一点显示时间
 
 const THEMES = {
   day:{bg:'#FFFFFF',text:'#111111',sub:'#888888',card:'#F7F7F7',border:'#EAEAEA',accent:'#111111',onAccent:'#FFFFFF'},
@@ -415,21 +452,114 @@ const state = {
   apiUrl:'', apiKey:'', apiModel:'gpt-3.5-turbo',
   apiPresets: [],
   characters: [], masks: [], worldviews: [], worldbooks: [],
-  styles: [{id:'s1', title:'晋江文学', content:''}, {id:'s2', title:'起点文学', content:''}, {id:'s3', title:'番茄文学', content:''}, {id:'s4', title:'LOFTER文学', content:''}]
+  styles: [{id:'s1', title:'晋江文学', content:''}, {id:'s2', title:'起点文学', content:''}, {id:'s3', title:'番茄文学', content:''}, {id:'s4', title:'LOFTER文学', content:''}],
+  appIcon: '', // 存储自定义图标 base64
+  customFont: null // 存储用户上传的自定义字体
 };
 
-function save(){try{localStorage.setItem('jj_v3',JSON.stringify(state))}catch(e){}}
+// API 密钥仅保存在当前浏览器标签页的 sessionStorage，不写入长期配置 jj_v3。
+// 注意：sessionStorage 不是加密保险箱；同源脚本仍可能读取它，请勿在不可信设备上保存密钥。
+const SECRET_STORAGE_KEY = 'jj_v3_session_secrets';
+function readSessionSecrets(){
+  try { return JSON.parse(sessionStorage.getItem(SECRET_STORAGE_KEY) || '{}') || {}; }
+  catch(e) { return {}; }
+}
+function saveSecrets(){
+  try {
+    const presetKeys = {};
+    (state.apiPresets || []).forEach((p, i) => { if (p && p.key) presetKeys[i] = p.key; });
+    sessionStorage.setItem(SECRET_STORAGE_KEY, JSON.stringify({ apiKey: state.apiKey || '', presetKeys }));
+  } catch(e) { console.warn('当前会话密钥保存失败', e); }
+}
+function save(){
+  try {
+    const persisted = { ...state, apiKey: '' };
+    persisted.apiPresets = (state.apiPresets || []).map(p => ({ ...p, key: '' }));
+    localStorage.setItem('jj_v3', JSON.stringify(persisted));
+    saveSecrets();
+  } catch(e) { console.warn('存储空间已满', e); toast('存储空间已满，请注意清理'); }
+}
 function load(){
   try{
     const d=JSON.parse(localStorage.getItem('jj_v3'));
     if(d) Object.assign(state, d);
-    // 兼容旧版数据
     ['characters','masks','worldviews','worldbooks','apiPresets','styles'].forEach(k => {
       if(!Array.isArray(state[k])) state[k] = [];
     });
     if(!state.styles.length) state.styles = [{id:'s1', title:'晋江文学', content:''}, {id:'s2', title:'起点文学', content:''}];
-  }catch(e){}
+
+    const secrets = readSessionSecrets();
+    // 兼容旧版本：把旧配置中的明文密钥迁移到当前会话，然后从长期配置中清除。
+    if (!secrets.apiKey && state.apiKey) secrets.apiKey = state.apiKey;
+    state.apiKey = secrets.apiKey || '';
+    (state.apiPresets || []).forEach((p, i) => {
+      if (secrets.presetKeys && secrets.presetKeys[i]) p.key = secrets.presetKeys[i];
+      else p.key = p.key || '';
+    });
+    save();
+  }catch(e){ console.warn('读取配置失败', e); }
 }
+
+/* ================= PWA 动态图标逻辑 ================= */
+function updateManifestAndIcon() {
+  if (!state.appIcon) {
+    $('#appIconPreview').innerHTML = '<span style="font-size:10px;color:var(--sub);">默认</span>';
+    return;
+  }
+  $('#appIconPreview').innerHTML = `<img src="${state.appIcon}" style="width:100%;height:100%;object-fit:cover;">`;
+  
+  // 动态生成 Manifest
+  const manifest = {
+    name: "白水鉴心",
+    short_name: "白水鉴心",
+    start_url: "./",
+    display: "standalone",
+    background_color: "#ffffff",
+    theme_color: "#ffffff",
+    icons: [
+      { src: state.appIcon, sizes: "192x192", type: "image/png" },
+      { src: state.appIcon, sizes: "512x512", type: "image/png" }
+    ]
+  };
+  
+  // 转换为 Blob URL
+  const stringManifest = JSON.stringify(manifest);
+  const blob = new Blob([stringManifest], {type: 'application/json'});
+  const manifestURL = URL.createObjectURL(blob);
+  
+  // 替换 link 标签
+  $('#dynamic-manifest').setAttribute('href', manifestURL);
+  $('#apple-touch-icon').setAttribute('href', state.appIcon);
+}
+
+$('#appIconInput').onchange = function(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      // 压缩为 192x192 的正方形
+      canvas.width = 192; canvas.height = 192;
+      // 居中裁剪
+      const size = Math.min(img.width, img.height);
+      const x = (img.width - size) / 2;
+      const y = (img.height - size) / 2;
+      ctx.drawImage(img, x, y, size, size, 0, 0, 192, 192);
+      
+      const base64 = canvas.toDataURL('image/png');
+      state.appIcon = base64;
+      save();
+      updateManifestAndIcon();
+      toast('图标已更新！请删除桌面旧图标后重新添加');
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  $('#appIconInput').value = '';
+};
 
 /* ================= 主题与页面切换 ================= */
 function applyTheme(n){
@@ -638,13 +768,43 @@ function getSysPrompt(selectedIds) {
   return s;
 }
 
+// 🚀 精确捕获报错信息的 API 调用
 async function callAI(msgs){
   const url=(state.apiUrl||'').trim(); if(!url)throw new Error('请先在设置中填写API URL');
   let ep=url.replace(/\/+$/,''); if(!/\/chat\/completions$/.test(ep))ep+='/chat/completions';
-  const res=await fetch(ep,{method:'POST',headers:{'Content-Type':'application/json',...(state.apiKey?{'Authorization':'Bearer '+state.apiKey}:{})},body:JSON.stringify({model:state.apiModel||'gpt-3.5-turbo',messages:msgs,temperature:0.85,max_tokens:4096})});
-  if(!res.ok)throw new Error('API请求失败('+res.status+')');
-  const d=await res.json(); const txt=d?.choices?.[0]?.message?.content||d?.choices?.[0]?.text;
-  if(!txt)throw new Error('API返回为空'); return txt.trim();
+  
+  const res = await fetch(ep, {
+    method:'POST',
+    headers:{'Content-Type':'application/json', ...(state.apiKey?{'Authorization':'Bearer '+state.apiKey}:{})},
+    body:JSON.stringify({model:state.apiModel||'gpt-3.5-turbo', messages:msgs, temperature:0.85, max_tokens:4096})
+  });
+
+  if(!res.ok) {
+    let errMsg = `API请求失败 (状态码 ${res.status})`;
+    try {
+      const errData = await res.json();
+      if(errData && errData.error && errData.error.message) {
+        errMsg = errData.error.message;
+      } else if (errData && errData.message) {
+        errMsg = errData.message;
+      }
+    } catch(e) {
+      // 忽略 JSON 解析错误
+    }
+    
+    // 根据状态码追加详细解释
+    if (res.status === 401) errMsg = '【API密钥无效】' + errMsg;
+    else if (res.status === 403) errMsg = '【拒绝访问/余额不足】' + errMsg;
+    else if (res.status === 429) errMsg = '【请求太频繁/额度超限】' + errMsg;
+    else if (res.status >= 500) errMsg = '【API服务器内部错误】' + errMsg;
+    
+    throw new Error(errMsg);
+  }
+  
+  const d = await res.json(); 
+  const txt = d?.choices?.[0]?.message?.content || d?.choices?.[0]?.text;
+  if(!txt)throw new Error('API返回内容为空，可能是被安全策略拦截'); 
+  return txt.trim();
 }
 
 function openGenerateModal() {
@@ -707,7 +867,8 @@ async function handleGenerate(tags) {
       title: tags.slice(0,3).join('·') + '小说', 
       date: new Date().toLocaleDateString(), 
       content: txt, 
-      history: [] 
+      history: [],
+      cover: '' 
     };
     state.shelf.unshift(newArticle); 
     save(); renderShelf();
@@ -715,7 +876,8 @@ async function handleGenerate(tags) {
     toast('生成成功');
     openReader(newArticle.id);
   } catch (e) {
-    toast(e.message);
+    // 这里由于 callAI 的强化，会显示非常详细的原因
+    alert('❌ 生成失败：\n' + e.message); 
     btn.disabled = false; btn.textContent = '开始生成';
   }
 }
@@ -727,12 +889,15 @@ function renderShelf(){
   $('#shelfCount').textContent = `共 ${state.shelf.length} 篇`;
   l.innerHTML=state.shelf.map(a=>`
     <div class="shelf-item" data-id="${a.id}">
-      <div class="shelf-cover">📖</div>
+      <div class="shelf-cover">
+        ${a.cover ? `<img src="${a.cover}">` : `📖`}
+      </div>
       <div class="shelf-info">
         <div class="shelf-title">${esc(a.title)}</div>
         <div class="shelf-meta">${a.date}</div>
       </div>
       <div class="shelf-actions">
+        <button class="mini-btn" onclick="editArticle(event, '${a.id}')">编辑</button>
         <button class="mini-btn danger" onclick="delArticle(event, '${a.id}')">删除</button>
       </div>
     </div>
@@ -741,6 +906,7 @@ function renderShelf(){
     item.onclick = (e) => { if(!e.target.classList.contains('mini-btn')) openReader(item.dataset.id); };
   });
 }
+
 window.delArticle = (e, id) => {
   e.stopPropagation();
   if(confirm('确定删除这篇文章吗？')) {
@@ -748,6 +914,69 @@ window.delArticle = (e, id) => {
     save(); renderShelf();
   }
 }
+
+// 编辑书本
+let editingBookId = null;
+window.editArticle = (e, id) => {
+  e.stopPropagation();
+  const a = state.shelf.find(x=>x.id===id); if(!a) return;
+  editingBookId = id;
+  
+  const body = `
+    <div class="field">
+      <label class="field-label">书名</label>
+      <input type="text" id="editBookTitle" class="text-input" value="${esc(a.title)}">
+    </div>
+    <div class="field">
+      <label class="field-label">封面图片</label>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div id="coverPreview" style="width:44px;height:58px;border-radius:6px;background:var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+          ${a.cover ? `<img src="${a.cover}" style="width:100%;height:100%;object-fit:cover;">` : '📖'}
+        </div>
+        <button class="btn btn-outline" onclick="document.getElementById('coverInput').click()">上传新封面</button>
+      </div>
+    </div>
+  `;
+  openModal('编辑书本', body, [
+    {label:'保存', type:'primary', onclick:()=>{
+      const newTitle = $('#editBookTitle').value.trim();
+      if(!newTitle) return toast('书名不能为空');
+      a.title = newTitle;
+      save(); renderShelf(); closeModal(); toast('修改成功');
+    }},
+    {label:'取消', type:'outline', onclick:closeModal}
+  ]);
+}
+
+// 封面图片上传逻辑（带压缩）
+$('#coverInput').onchange = function(e) {
+  const file = e.target.files[0];
+  if(!file || !editingBookId) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const maxSize = 200;
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; } }
+      else { if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; } }
+      canvas.width = w; canvas.height = h;
+      ctx.drawImage(img, 0, 0, w, h);
+      
+      const base64 = canvas.toDataURL('image/jpeg', 0.8);
+      const a = state.shelf.find(x=>x.id===editingBookId);
+      if(a) {
+        a.cover = base64;
+        $('#coverPreview').innerHTML = `<img src="${base64}" style="width:100%;height:100%;object-fit:cover;">`;
+      }
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  $('#coverInput').value = '';
+};
 
 let currentArticleId = null;
 
@@ -767,7 +996,7 @@ function openReader(id) {
     });
   }
   html += `<div class="field">
-    <textarea id="readerContInput" class="reader-input" rows="3" placeholder="输入续写方向，例如：两人关系升温..."></textarea>
+    <textarea id="readerContInput" class="reader-input" rows="3" placeholder="输入续写方向（留空则AI自由发挥）..."></textarea>
     <button class="btn btn-primary btn-block" onclick="handleContinue()">立即续写</button>
   </div></div>`;
   
@@ -787,7 +1016,6 @@ window.closeReader = () => {
 
 async function handleContinue() {
   const dir = $('#readerContInput').value.trim();
-  if(!dir) return toast('请输入续写方向');
   const a = state.shelf.find(x=>x.id===currentArticleId);
   if(!a) return;
   
@@ -795,22 +1023,30 @@ async function handleContinue() {
   btn.disabled = true; btn.textContent = '续写中...';
   
   try {
-    const p = `以下是前文：\n${a.content}\n\n续写方向：${dir}\n要求保持文风，直接输出正文，不要截断。`;
+    let p = `以下是前文：\n${a.content}\n\n`;
+    if (dir) {
+      p += `续写方向：${dir}\n`;
+    } else {
+      p += `续写要求：请顺着前文的情节自然续写，保持原有文风，推动剧情发展。\n`;
+    }
+    p += `要求：直接输出正文，不要截断，不要解释。`;
+    
     const txt = await callAI([{role:'system', content: getSysPrompt([])}, {role:'user', content: p}]);
     
     a.history = a.history || [];
-    a.history.push({dir, text: txt});
+    a.history.push({dir: dir || '（自然续写）', text: txt});
     a.content += '\n\n' + txt;
     save(); renderShelf(); openReader(a.id);
     toast('续写成功');
   } catch(e) {
-    toast(e.message);
+    // 这里直接弹窗显示极其详细的错误
+    alert('❌ 续写失败：\n' + e.message);
     btn.disabled = false; btn.textContent = '立即续写';
   }
 }
 
 /* ================= 阅读器设置 ================= */
-const readerSettings = { bg:'#FFFFFF', text:'#111111', fs:16, mode:'scroll' };
+const readerSettings = { bg:'#FFFFFF', text:'#111111', fs:16, mode:'scroll', font:'kaiti' };
 
 function openReaderSettings() { $('#readerSettingsPanel').classList.add('show'); }
 function closeReaderSettings() { $('#readerSettingsPanel').classList.remove('show'); }
@@ -820,13 +1056,43 @@ function applyReaderTheme() {
   $('#readerOverlay').style.background = readerSettings.bg;
   $('#readerOverlay').style.color = readerSettings.text;
   rc.style.fontSize = readerSettings.fs + 'px';
+
+  const fontMap = {
+    'system': '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif',
+    'kaiti': '"KaiTi","STKaiti","SimKai","楷体","BiauKai",serif',
+    'songti': '"SimSun","Songti SC","宋体",serif',
+    'heiti': '"SimHei","Heiti SC","黑体","Microsoft YaHei","PingFang SC",sans-serif'
+  };
+
+  if (readerSettings.font === 'custom' && state.customFont && state.customFont.data) {
+    rc.style.fontFamily = '"CustomFont",sans-serif';
+  } else {
+    rc.style.fontFamily = fontMap[readerSettings.font] || fontMap['kaiti'];
+  }
+
   document.querySelectorAll('#readerBgGroup .r-color-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.bg === readerSettings.bg);
   });
+
+  const fontSel = $('#readerFontSelect');
+  if (fontSel) fontSel.value = readerSettings.font;
+
+  const customRow = $('#customFontRow');
+  if (customRow) customRow.style.display = readerSettings.font === 'custom' ? 'flex' : 'none';
 }
 function changeReaderFontSize(step) {
   readerSettings.fs = Math.min(26, Math.max(12, readerSettings.fs + step));
   applyReaderTheme();
+}
+
+/* ================= 字体管理 ================= */
+function loadCustomFont(fontData) {
+  const oldStyle = document.getElementById('custom-font-face');
+  if (oldStyle) oldStyle.remove();
+  const style = document.createElement('style');
+  style.id = 'custom-font-face';
+  style.textContent = `@font-face { font-family: 'CustomFont'; src: url('${fontData}'); font-display: swap; }`;
+  document.head.appendChild(style);
 }
 
 /* ================= API 预设管理 ================= */
@@ -880,6 +1146,8 @@ function init(){
   load();
   applyTheme(state.theme);
   renderTags(); renderLibs(); renderShelf();
+  renderPresetSelector();
+  updateManifestAndIcon();
   
   // 导航栏与抽屉
   document.querySelectorAll('.nav-item').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));
@@ -913,9 +1181,9 @@ function init(){
             if(m) sys += `\n【User面具】\n${m}`;
             sys += '\n请创作聊天记录格式，例如【角色】：内容';
             const txt=await callAI([{role:'system',content:sys},{role:'user',content:`指令：${ins}`}]);
-            const a = { id:'a_'+Date.now(), title:'捡手机·聊天记录', date:new Date().toLocaleDateString(), content:txt, history:[] };
+            const a = { id:'a_'+Date.now(), title:'捡手机·聊天记录', date:new Date().toLocaleDateString(), content:txt, history:[], cover:'' };
             state.shelf.unshift(a); save(); renderShelf(); closeModal(); toast('生成成功'); openReader(a.id);
-          }catch(e){toast(e.message);btn.disabled=false;btn.textContent='生成'}
+          }catch(e){alert('❌ 生成失败：\n' + e.message);btn.disabled=false;btn.textContent='生成'}
         }},{label:'取消',type:'outline',onclick:closeModal}
       ]);
     }else if(type==='drama'){
@@ -933,10 +1201,10 @@ function init(){
           const btn = document.querySelector('#modalFooter .btn-primary'); btn.disabled = true; btn.textContent = '生成中...';
           try {
             const txt = await callAI([{role: 'system', content: getSysPrompt([]) + `\n请以【${st}】文风创作。`}, {role: 'user', content: `指令:${ins}\n字数:约${wc}字`}]);
-            const a = { id: 'a_' + Date.now(), title: '小剧场·' + ins.slice(0, 8), date: new Date().toLocaleDateString(), content: txt, history: []};
+            const a = { id: 'a_' + Date.now(), title: '小剧场·' + ins.slice(0, 8), date: new Date().toLocaleDateString(), content: txt, history: [], cover:''};
             state.shelf.unshift(a); save(); renderShelf(); closeModal(); toast('生成成功'); openReader(a.id);
           } catch (e) {
-            toast(e.message); btn.disabled = false; btn.textContent = '生成';
+            alert('❌ 生成失败：\n' + e.message); btn.disabled = false; btn.textContent = '生成';
           }
         }},
         {label: '取消', type: 'outline', onclick: closeModal}
@@ -950,6 +1218,41 @@ function init(){
   document.querySelectorAll('#readerBgGroup .r-color-btn').forEach(b => {
     b.onclick = () => { readerSettings.bg = b.dataset.bg; readerSettings.text = b.dataset.txt; applyReaderTheme(); };
   });
+
+  // 字体选择
+  $('#readerFontSelect').onchange = (e) => {
+    readerSettings.font = e.target.value;
+    applyReaderTheme();
+  };
+
+  // 自定义字体上传
+  $('#fontUploadInput').onchange = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['ttf','otf','woff','woff2'].includes(ext)) {
+      return toast('请上传 .ttf / .otf / .woff / .woff2 格式的字体文件');
+    }
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      state.customFont = { name: file.name, data: ev.target.result };
+      loadCustomFont(ev.target.result);
+      $('#customFontName').textContent = file.name;
+      save();
+      applyReaderTheme();
+      toast('自定义字体已加载');
+    };
+    reader.readAsDataURL(file);
+    $('#fontUploadInput').value = '';
+  };
+
+  // 恢复自定义字体
+  if (state.customFont && state.customFont.data) {
+    loadCustomFont(state.customFont.data);
+    const nameEl = $('#customFontName');
+    if (nameEl) nameEl.textContent = state.customFont.name;
+  }
+
   document.querySelectorAll('#readerModeGroup button').forEach(b => {
     b.onclick = () => {
       document.querySelectorAll('#readerModeGroup button').forEach(x=>x.classList.remove('active'));
@@ -991,13 +1294,13 @@ function init(){
   
   $('#clearAllDataBtn').onclick = () => {
     if (confirm('⚠️ 警告！\n\n将清空所有文章、设定和配置，且无法恢复。确定吗？')) {
-      localStorage.removeItem('jj_v3'); location.reload();
+      localStorage.removeItem('jj_v3'); sessionStorage.removeItem(SECRET_STORAGE_KEY); location.reload();
     }
   };
   
   $('#openGenerateBtn').onclick = openGenerateModal;
   
-  // 保留简单的拉取模型逻辑
+  // 拉取模型逻辑
   $('#fetchModelsBtn').onclick = async () => {
     const url = (state.apiUrl || '').trim();
     if (!url) return toast('请先填写 API URL');
@@ -1006,19 +1309,41 @@ function init(){
     try {
       let ep = url.replace(/\/+$/, '') + '/models';
       const res = await fetch(ep, { headers: { 'Authorization': 'Bearer ' + state.apiKey } });
-      if(!res.ok) throw new Error('请求失败');
+      if(!res.ok) {
+         if(res.status===401) throw new Error('密钥无效(401)');
+         if(res.status===403) throw new Error('拒绝访问/余额不足(403)');
+         throw new Error('请求失败('+res.status+')');
+      }
       const data = await res.json();
       if(data && Array.isArray(data.data)) {
-        const models = data.data.map(m=>m.id).sort();
-        const listHtml = `<div style="display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;">` + 
-          models.map(m => `<button class="btn btn-outline" style="justify-content:flex-start;padding:12px;font-size:14px;word-break:break-all;" onclick="document.getElementById('apiModel').value='${m}';state.apiModel='${m}';save();closeModal();toast('已选择模型');">${esc(m)}</button>`).join('') + 
-          `</div>`;
-        openModal('选择模型', listHtml, [{label:'取消', type:'outline', onclick:closeModal}]);
+        const models = data.data.map(m => m && typeof m.id === 'string' ? m.id : '').filter(Boolean).sort();
+        openModal('选择模型', '', [{label:'取消', type:'outline', onclick:closeModal}]);
+        const list = document.createElement('div');
+        list.style.cssText = 'display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;';
+        models.forEach(modelId => {
+          const option = document.createElement('button');
+          option.type = 'button';
+          option.className = 'btn btn-outline';
+          option.style.cssText = 'justify-content:flex-start;padding:12px;font-size:14px;word-break:break-all;';
+          option.textContent = modelId;
+          option.addEventListener('click', () => {
+            state.apiModel = modelId;
+            $('#apiModel').value = modelId;
+            save(); closeModal(); toast('已选择模型');
+          });
+          list.appendChild(option);
+        });
+        if (!models.length) {
+          const empty = document.createElement('p');
+          empty.textContent = '接口没有返回可用模型';
+          list.appendChild(empty);
+        }
+        $('#modalBody').appendChild(list);
       } else {
         throw new Error('返回格式不支持');
       }
     } catch(e) {
-      toast('拉取失败: ' + e.message);
+      alert('❌ 拉取失败：\n' + e.message);
     } finally {
       btn.disabled = false; btn.textContent = oldText;
     }
@@ -1027,7 +1352,7 @@ function init(){
   $('#testApiBtn').onclick = async () => {
     const b=$('#testApiBtn');b.textContent='测试中...';b.disabled=true;
     try{ await callAI([{role:'user',content:'回复正常'}]); toast('连接成功'); }
-    catch(e){ toast('失败:'+e.message); }
+    catch(e){ alert('❌ 连接测试失败：\n' + e.message); }
     b.textContent='测试连接';b.disabled=false;
   };
 
