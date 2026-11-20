@@ -160,9 +160,125 @@ svg{display:block}
 /* 阅读器字体选择 */
 .r-font-select{min-width:140px;width:auto;padding:8px 32px 8px 12px;font-size:13px;background:var(--card);border-radius:8px;border:none;color:var(--text);appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--sub) 50%),linear-gradient(135deg,var(--sub) 50%,transparent 50%);background-position:calc(100% - 12px) 50%,calc(100% - 8px) 50%;background-size:4px 4px;background-repeat:no-repeat}
 .r-font-upload-name{font-size:12px;color:var(--sub);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* =========== 白水鉴心·水墨开屏 =========== */
+#inkIntro{
+  position:fixed;inset:0;z-index:10000;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  background:
+    radial-gradient(ellipse at 67% 46%,rgba(150,150,150,.09),transparent 38%),
+    radial-gradient(ellipse at 18% 78%,rgba(120,120,120,.08),transparent 35%),
+    #fbfbfa;
+  color:#252525;opacity:1;visibility:visible;
+  transition:opacity 1.15s ease,visibility 1.15s ease;
+  isolation:isolate;
+}
+#inkIntro::before,#inkIntro::after{
+  content:"";position:absolute;pointer-events:none;border-radius:50%;
+  filter:blur(34px);background:rgba(100,100,100,.075);
+  animation:inkMist 7s ease-in-out infinite alternate;
+}
+#inkIntro::before{width:58vw;height:32vh;left:18%;top:22%}
+#inkIntro::after{width:42vw;height:38vh;right:4%;bottom:5%;animation-delay:-3s;opacity:.55}
+#inkIntro.is-leaving{opacity:0;visibility:hidden;pointer-events:none}
+#inkIntro .ink-tree{
+  position:absolute;left:-7vw;bottom:-9vh;width:min(78vw,760px);height:94vh;
+  overflow:visible;opacity:.93;
+}
+#inkIntro .ink-tree path{
+  fill:none;stroke:#242424;stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:var(--len,900);stroke-dashoffset:var(--len,900);
+  animation:inkDraw var(--dur,3.8s) cubic-bezier(.2,.65,.25,1) forwards;
+  animation-delay:var(--delay,0s);
+}
+#inkIntro .ink-tree .heavy{stroke-width:8;opacity:.74}
+#inkIntro .ink-tree .mid{stroke-width:4.3;opacity:.62}
+#inkIntro .ink-tree .fine{stroke-width:2.1;opacity:.46}
+#inkIntro .ink-tree .wash{stroke:#555;stroke-width:18;opacity:.09;filter:blur(7px)}
+#inkIntro .poem{
+  position:absolute;right:9%;top:19%;height:min(60vh,560px);
+  display:flex;flex-direction:row-reverse;align-items:flex-start;gap:clamp(18px,4vw,48px);
+  writing-mode:vertical-rl;font-family:"STSong","Songti SC","Noto Serif CJK SC",serif;
+  font-weight:400;letter-spacing:.24em;color:rgba(35,35,35,.82);
+  text-shadow:0 1px 9px rgba(255,255,255,.8);
+}
+#inkIntro .poem-line{font-size:clamp(17px,2.8vw,25px);opacity:0;filter:blur(7px)}
+#inkIntro .poem-line:first-child{margin-top:2.8em;animation:poemIn 1.8s ease forwards;animation-delay:3.4s}
+#inkIntro .poem-line:last-child{margin-top:0;animation:poemIn 1.8s ease forwards;animation-delay:4.05s}
+#inkIntro .seal{
+  position:absolute;right:7%;bottom:11%;font:11px/1.4 serif;letter-spacing:.22em;
+  color:rgba(45,45,45,.38);writing-mode:vertical-rl;opacity:0;
+  animation:poemIn 1.5s ease forwards;animation-delay:4.8s
+}
+#inkIntro .intro-skip{
+  position:absolute;right:22px;bottom:calc(22px + env(safe-area-inset-bottom));
+  padding:9px 13px;border:1px solid rgba(40,40,40,.2);border-radius:30px;
+  color:rgba(30,30,30,.55);font-size:11px;letter-spacing:.12em;
+  background:rgba(255,255,255,.3);backdrop-filter:blur(8px)
+}
+@keyframes inkDraw{to{stroke-dashoffset:0}}
+@keyframes poemIn{0%{opacity:0;filter:blur(8px);transform:translateY(12px)}100%{opacity:1;filter:blur(0);transform:translateY(0)}}
+@keyframes inkMist{from{transform:translate3d(-2%,1%,0) scale(.92);opacity:.45}to{transform:translate3d(3%,-2%,0) scale(1.08);opacity:.9}}
+@media(max-width:600px){
+  #inkIntro .ink-tree{left:-24vw;width:105vw;height:82vh;bottom:-3vh}
+  #inkIntro .poem{right:8%;top:16%;height:58vh;gap:15px}
+  #inkIntro .poem-line{font-size:clamp(16px,4.2vw,22px);letter-spacing:.16em}
+  #inkIntro .seal{right:5%;bottom:13%}
+}
+@media(prefers-reduced-motion:reduce){
+  #inkIntro *,#inkIntro::before,#inkIntro::after{animation-duration:.01ms!important;animation-delay:0ms!important}
+}
+
 </style>
 </head>
 <body>
+
+<!-- 白水鉴心·水墨开屏动画 -->
+<div id="inkIntro" aria-label="白水鉴心水墨开屏" role="presentation">
+  <svg class="ink-tree" viewBox="0 0 700 900" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+    <defs>
+      <filter id="inkBleed" x="-35%" y="-25%" width="170%" height="160%">
+        <feTurbulence type="fractalNoise" baseFrequency=".012 .026" numOctaves="2" seed="13" result="noise"/>
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="13" xChannelSelector="R" yChannelSelector="G"/>
+        <feGaussianBlur stdDeviation="1.15"/>
+      </filter>
+      <filter id="softInk"><feGaussianBlur stdDeviation="5"/></filter>
+    </defs>
+    <g filter="url(#softInk)" opacity=".42">
+      <path class="wash" style="--len:1200;--dur:4.8s" d="M82 900 C155 770 190 650 245 520 C285 420 306 300 352 178"/>
+      <path class="wash" style="--len:800;--dur:4.4s;--delay:.4s" d="M245 535 C190 430 125 355 54 286"/>
+    </g>
+    <g filter="url(#inkBleed)">
+      <path class="heavy" style="--len:1100;--dur:3.8s" d="M75 915 C135 800 180 704 218 594 C256 486 282 394 311 300 C329 239 346 174 371 104"/>
+      <path class="heavy" style="--len:720;--dur:3.5s;--delay:.35s" d="M218 600 C164 548 119 493 88 423 C66 373 40 336 8 306"/>
+      <path class="mid" style="--len:620;--dur:3.2s;--delay:.65s" d="M155 520 C166 446 158 383 130 322 C111 281 93 248 67 218"/>
+      <path class="mid" style="--len:600;--dur:3.1s;--delay:.7s" d="M252 480 C313 429 369 380 411 322 C446 274 469 227 478 173"/>
+      <path class="heavy" style="--len:680;--dur:3.6s;--delay:.5s" d="M311 303 C270 248 235 195 224 132 C218 96 220 61 235 22"/>
+      <path class="mid" style="--len:520;--dur:3s;--delay:1s" d="M345 203 C400 174 445 139 475 91 C492 64 503 39 508 8"/>
+      <path class="fine" style="--len:430;--dur:2.8s;--delay:1.15s" d="M91 428 C65 398 42 377 12 366 M92 423 C103 382 101 345 83 306"/>
+      <path class="fine" style="--len:410;--dur:2.7s;--delay:1.2s" d="M130 322 C145 281 151 239 143 197 M130 322 C91 292 62 269 34 233"/>
+      <path class="fine" style="--len:440;--dur:2.8s;--delay:1.3s" d="M224 132 C190 106 167 78 153 42 M225 133 C255 98 270 62 275 24"/>
+      <path class="fine" style="--len:440;--dur:2.8s;--delay:1.35s" d="M411 322 C455 315 495 296 529 264 M411 322 C405 274 415 235 441 198"/>
+      <path class="fine" style="--len:450;--dur:2.8s;--delay:1.45s" d="M478 173 C526 153 563 125 591 87 M478 173 C464 132 467 94 484 57"/>
+      <path class="fine" style="--len:400;--dur:2.6s;--delay:1.5s" d="M475 91 C515 77 548 52 570 20 M475 91 C450 65 439 38 440 9"/>
+      <path class="fine" style="--len:370;--dur:2.6s;--delay:1.5s" d="M252 480 C301 474 342 453 375 421 M252 480 C239 437 242 402 260 368"/>
+      <path class="fine" style="--len:340;--dur:2.5s;--delay:1.55s" d="M180 704 C126 686 82 654 48 610 M180 704 C216 674 246 637 261 596"/>
+      <path class="fine" style="--len:300;--dur:2.4s;--delay:1.6s" d="M352 178 C326 145 315 112 319 77 M352 178 C384 145 402 111 406 75"/>
+    </g>
+    <g opacity=".13" filter="url(#softInk)" fill="#333">
+      <ellipse cx="120" cy="785" rx="105" ry="34"/>
+      <ellipse cx="278" cy="530" rx="76" ry="22"/>
+      <ellipse cx="388" cy="330" rx="62" ry="17"/>
+    </g>
+  </svg>
+  <div class="poem" aria-label="直到他生亦相觅，不能空记树中环。">
+    <span class="poem-line">直到他生亦相觅，</span>
+    <span class="poem-line">不能空记树中环。</span>
+  </div>
+  <div class="seal">白水鉴心</div>
+  <button class="intro-skip" id="inkIntroSkip" type="button">轻触 · 入境</button>
+</div>
+
 
 <div class="app">
   <header class="app-header">
@@ -1364,5 +1480,28 @@ document.addEventListener('DOMContentLoaded', init);
 <script>
 if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js').catch(console.error); }
 </script>
+
+<script>
+/* 开屏动画：约 7 秒后淡出；点击可立即跳过 */
+(function(){
+  function dismissInkIntro(){
+    const intro = document.getElementById('inkIntro');
+    if(!intro || intro.classList.contains('is-leaving')) return;
+    intro.classList.add('is-leaving');
+    window.setTimeout(function(){ intro.remove(); }, 1250);
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    const intro = document.getElementById('inkIntro');
+    if(!intro) return;
+    const skip = document.getElementById('inkIntroSkip');
+    if(skip) skip.addEventListener('click', dismissInkIntro);
+    intro.addEventListener('click', function(e){
+      if(e.target === intro) dismissInkIntro();
+    });
+    window.setTimeout(dismissInkIntro, 7200);
+  }, {once:true});
+})();
+</script>
+
 </body>
 </html>
